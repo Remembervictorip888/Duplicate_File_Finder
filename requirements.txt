@@ -12,5 +12,8 @@ imagehash>=4.3.1
 # For safe file deletion (to Recycle Bin)
 send2trash>=1.8.2
 
+# For data validation and structured models
+pydantic>=2.5.0
+
 # Optional: For better async support if needed
 aiofiles>=23.0.0

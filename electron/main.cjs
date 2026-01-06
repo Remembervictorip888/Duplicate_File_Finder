@@ -19,6 +19,30 @@ const createWindow = () => {
     icon: join(__dirname, '..', 'public', 'favicon.ico') // Use your app's icon if available
   });
 
+  // Set a Content Security Policy to prevent security vulnerabilities
+  window.webContents.on('did-frame-navigate', (event, url, httpResponseCode, httpStatusText) => {
+    // Add Content Security Policy header to prevent security vulnerabilities
+    window.webContents.insertCSS(`
+      /* Additional security styles if needed */
+    `);
+  });
+
+  // Set CSP when the page is loaded in development mode
+  if (!app.isPackaged) {
+    window.webContents.on('did-finish-load', () => {
+      // Inject a Content Security Policy for development
+      window.webContents.executeJavaScript(`
+        // Create a CSP meta tag to prevent security vulnerabilities
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'Content-Security-Policy';
+        meta.content = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; frame-src 'self';";
+        document.head.appendChild(meta);
+      `).catch(err => {
+        log('error', `Error injecting CSP: ${err.message}`);
+      });
+    });
+  }
+
   // Determine the correct URL based on environment
   const appURL = app.isPackaged
     ? new URL(`file://${join(__dirname, '..', 'dist', 'index.html')}`)

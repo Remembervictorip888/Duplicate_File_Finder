@@ -15,8 +15,9 @@ import os
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 import logging
+from datetime import datetime
 
-from core.hashing import find_duplicates_by_hash
+from core.hashing import find_duplicates_by_hash, find_duplicates_by_hash_models
 from core.filename_comparison import (
     find_duplicates_by_filename,
     find_duplicates_by_patterns,
@@ -38,6 +39,10 @@ from core.advanced_grouping import (
 from core.size_filtering import filter_files_by_size
 from core.ignore_list import IgnoreList, create_default_ignore_list
 from core.scanning import scan_directory_for_files
+from core.models import DuplicateGroup, FileInfo, ScanSettings, ScanResult
+
+# Import concurrent processing functions
+from core.concurrency import find_duplicates_by_hash_concurrent
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +149,8 @@ def find_all_duplicates(
     
     if use_hash and file_paths:
         logger.info("Starting hash-based duplicate detection...")
-        results['hash'] = find_duplicates_by_hash(file_paths)
+        # Use concurrent processing for hash-based detection
+        results['hash'] = find_duplicates_by_hash_concurrent(file_paths)
     
     if use_size and file_paths:
         logger.info("Starting size-based duplicate detection...")
@@ -196,6 +202,166 @@ def find_all_duplicates(
     logger.info(f"Completed duplicate detection. Found {total_groups} groups total across all methods")
     
     return results
+
+
+def find_all_duplicates_with_models(settings: ScanSettings) -> List[DuplicateGroup]:
+    """
+    Find duplicate files using all available methods with Pydantic models.
+    
+    Args:
+        settings: ScanSettings model containing all scan parameters
+        
+    Returns:
+        List of DuplicateGroup models containing the duplicate groups
+    """
+    logger.info(f"Starting comprehensive duplicate scan with models for: {settings.directory}")
+    
+    # First, scan for all files
+    extensions = settings.extensions or [
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp',
+        '.mp3', '.mp4', '.avi', '.mov', '.mkv', '.txt', '.pdf',
+        '.doc', '.docx', '.xls', '.xlsx'
+    ]
+    
+    all_file_paths = list(scan_directory_for_files(str(settings.directory), extensions))
+    logger.info(f"Found {len(all_file_paths)} files before filtering")
+    
+    # Apply size filtering if thresholds are provided
+    file_paths = all_file_paths
+    if settings.min_file_size_mb is not None or settings.max_file_size_mb is not None:
+        logger.info(f"Applying size filtering (min: {settings.min_file_size_mb}, max: {settings.max_file_size_mb})")
+        file_paths, excluded_by_size = filter_files_by_size(
+            file_paths, 
+            min_size_mb=settings.min_file_size_mb, 
+            max_size_mb=settings.max_file_size_mb
+        )
+        logger.info(f"Files after size filtering: {len(file_paths)}")
+    
+    duplicate_groups = []
+    
+    # Use hash-based detection with concurrent processing
+    if settings.use_hash and file_paths:
+        logger.info("Starting hash-based duplicate detection...")
+        hash_results = find_duplicates_by_hash_concurrent(file_paths)
+        for hash_value, file_list in hash_results.items():
+            if len(file_list) > 1:  # Only include groups with actual duplicates
+                file_info_list = []
+                for fp in file_list:
+                    path_obj = Path(fp)
+                    stat = path_obj.stat()
+                    file_info = FileInfo(
+                        path=path_obj,
+                        size=stat.st_size,
+                        created_time=datetime.fromtimestamp(stat.st_ctime),
+                        modified_time=datetime.fromtimestamp(stat.st_mtime),
+                        extension=path_obj.suffix.lower(),
+                        name=path_obj.name
+                    )
+                    file_info_list.append(file_info)
+                
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        id=f"hash_{hash_value}",
+                        files=file_info_list,
+                        detection_method="hash"
+                    )
+                )
+    
+    # Use size-based detection
+    if settings.use_size and file_paths:
+        logger.info("Starting size-based duplicate detection...")
+        size_results = find_duplicates_by_size(file_paths)
+        for size, file_list in size_results.items():
+            if len(file_list) > 1:  # Only include groups with actual duplicates
+                file_info_list = []
+                for fp in file_list:
+                    path_obj = Path(fp)
+                    stat = path_obj.stat()
+                    file_info = FileInfo(
+                        path=path_obj,
+                        size=stat.st_size,
+                        created_time=datetime.fromtimestamp(stat.st_ctime),
+                        modified_time=datetime.fromtimestamp(stat.st_mtime),
+                        extension=path_obj.suffix.lower(),
+                        name=path_obj.name
+                    )
+                    file_info_list.append(file_info)
+                
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        id=f"size_{size}",
+                        files=file_info_list,
+                        detection_method="size"
+                    )
+                )
+    
+    # Use filename-based detection
+    if settings.use_filename and file_paths:
+        logger.info("Starting filename-based duplicate detection...")
+        filename_results = find_duplicates_by_filename(file_paths)
+        for group_id, file_list in filename_results.items():
+            if len(file_list) > 1:  # Only include groups with actual duplicates
+                file_info_list = []
+                for fp in file_list:
+                    path_obj = Path(fp)
+                    stat = path_obj.stat()
+                    file_info = FileInfo(
+                        path=path_obj,
+                        size=stat.st_size,
+                        created_time=datetime.fromtimestamp(stat.st_ctime),
+                        modified_time=datetime.fromtimestamp(stat.st_mtime),
+                        extension=path_obj.suffix.lower(),
+                        name=path_obj.name
+                    )
+                    file_info_list.append(file_info)
+                
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        id=f"filename_{group_id}",
+                        files=file_info_list,
+                        detection_method="filename"
+                    )
+                )
+    
+    # Use custom rules if enabled
+    if settings.use_custom_rules and file_paths:
+        logger.info("Starting custom rule-based duplicate detection...")
+        custom_rules, rule_names = create_custom_rule_set(
+            suffix_rules=settings.suffix_rules,
+            prefix_rules=settings.prefix_rules,
+            containing_rules=settings.containing_rules,
+            regex_rules=settings.regex_rules,
+            keywords=settings.keywords
+        )
+        
+        custom_results = find_duplicates_by_custom_rules(file_paths, custom_rules, rule_names)
+        for rule_name, file_list in custom_results.items():
+            if len(file_list) > 1:  # Only include groups with actual duplicates
+                file_info_list = []
+                for fp in file_list:
+                    path_obj = Path(fp)
+                    stat = path_obj.stat()
+                    file_info = FileInfo(
+                        path=path_obj,
+                        size=stat.st_size,
+                        created_time=datetime.fromtimestamp(stat.st_ctime),
+                        modified_time=datetime.fromtimestamp(stat.st_mtime),
+                        extension=path_obj.suffix.lower(),
+                        name=path_obj.name
+                    )
+                    file_info_list.append(file_info)
+                
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        id=f"custom_{rule_name}",
+                        files=file_info_list,
+                        detection_method="custom_rules"
+                    )
+                )
+    
+    logger.info(f"Completed duplicate detection with models. Found {len(duplicate_groups)} groups")
+    
+    return duplicate_groups
 
 
 def merge_duplicate_groups(results: Dict[str, Dict[str, List[str]]]) -> List[List[str]]:

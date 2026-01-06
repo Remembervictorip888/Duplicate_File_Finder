@@ -7,6 +7,11 @@ import xxhash
 from pathlib import Path
 from typing import Dict, List, Tuple
 import logging
+from datetime import datetime
+from core.models import FileInfo, FileHash
+
+# Import concurrent processing functions
+from core.concurrency import find_duplicates_by_hash_concurrent, calculate_hashes_concurrent
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,33 @@ def get_hash(filepath: str) -> str:
     except (OSError, IOError) as e:
         logger.error(f"Error reading file {filepath}: {e}")
         return ""
+
+
+def get_file_info(filepath: str) -> FileInfo:
+    """
+    Get detailed information about a file and return as a FileInfo model.
+    
+    Args:
+        filepath: Path to the file
+        
+    Returns:
+        FileInfo model with file details
+    """
+    path_obj = Path(filepath)
+    
+    try:
+        stat = path_obj.stat()
+        return FileInfo(
+            path=path_obj,
+            size=stat.st_size,
+            created_time=datetime.fromtimestamp(stat.st_ctime),
+            modified_time=datetime.fromtimestamp(stat.st_mtime),
+            extension=path_obj.suffix.lower(),
+            name=path_obj.name
+        )
+    except (OSError, IOError) as e:
+        logger.error(f"Error getting info for file {filepath}: {e}")
+        raise ValueError(f"Could not get file info for {filepath}")
 
 
 def get_file_size(filepath: str) -> int:
@@ -62,30 +94,36 @@ def find_duplicates_by_hash(file_paths: List[str]) -> Dict[str, List[str]]:
     Returns:
         Dictionary mapping hash values to lists of duplicate file paths
     """
-    hash_map: Dict[str, List[str]] = {}
+    # Use concurrent processing for better performance
+    return find_duplicates_by_hash_concurrent(file_paths)
+
+
+def find_duplicates_by_hash_models(file_paths: List[str]) -> List[FileHash]:
+    """
+    Find duplicate files by comparing their hashes, returning Pydantic models.
     
-    for i, file_path in enumerate(file_paths):
-        try:
-            # First check file size - if it's 0, skip it
-            size = get_file_size(file_path)
-            if size == 0:
-                continue
-                
-            file_hash = get_hash(file_path)
-            if file_hash:
-                if file_hash not in hash_map:
-                    hash_map[file_hash] = []
-                hash_map[file_hash].append(file_path)
-                
-                # Log progress every 1000 files
-                if (i + 1) % 1000 == 0:
-                    logger.info(f"Processed {i + 1}/{len(file_paths)} files for hashing")
-                    
-        except Exception as e:
-            logger.error(f"Error processing file {file_path}: {e}")
-            
+    Args:
+        file_paths: List of file paths to check for duplicates
+        
+    Returns:
+        List of FileHash models containing hash values and their duplicate file paths
+    """
+    # Use concurrent processing to calculate hashes
+    path_to_hash = calculate_hashes_concurrent(file_paths)
+    
+    # Group files by hash
+    hash_map: Dict[str, List[Path]] = {}
+    for filepath, file_hash in path_to_hash.items():
+        if file_hash:  # Only process files that were successfully hashed
+            path_obj = Path(filepath)
+            if file_hash not in hash_map:
+                hash_map[file_hash] = []
+            hash_map[file_hash].append(path_obj)
+    
     # Filter out unique files (those with only one path for a hash)
-    duplicates = {h: paths for h, paths in hash_map.items() if len(paths) > 1}
-    logger.info(f"Found {len(duplicates)} groups of duplicate files")
+    duplicate_hashes = [FileHash(hash_value=h, file_paths=paths) 
+                        for h, paths in hash_map.items() if len(paths) > 1]
     
-    return duplicates
+    logger.info(f"Found {len(duplicate_hashes)} groups of duplicate files")
+    
+    return duplicate_hashes

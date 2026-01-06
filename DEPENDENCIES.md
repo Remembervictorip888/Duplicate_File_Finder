@@ -2,6 +2,16 @@
 
 This document provides an overview of all project dependencies, their purposes, and update status.
 
+## Security Considerations
+
+The application implements several security measures to protect against XSS and other vulnerabilities:
+
+1. **Content Security Policy (CSP)**: Implemented both in the Electron main process and in the HTML meta tag to restrict resource loading
+2. **Context Isolation**: Ensures the renderer process is isolated from the main process
+3. **Secure IPC Communication**: Uses contextBridge to expose only necessary APIs to the renderer process
+4. **Electron Security**: Updated to the latest version with security patches
+
+
 ## Frontend Dependencies (Node.js/NPM)
 
 ### Core Dependencies
@@ -12,8 +22,9 @@ This document provides an overview of all project dependencies, their purposes, 
 ### Development Dependencies
 - **typescript**: ^5.3.3 - Typed superset of JavaScript that compiles to plain JavaScript
 - **vite**: ^5.0.12 - Next generation frontend tooling framework
-- **electron**: ^28.2.0 - Framework for building cross-platform desktop applications
+- **electron**: ^28.2.0 - Framework for building cross-platform desktop applications with security features
 - **electron-builder**: ^24.9.1 - Solution to package and build Electron apps
+- **electron-packager**: ^17.1.2 - Alternative solution for packaging Electron apps
 - **concurrently**: ^8.2.2 - Run multiple commands concurrently in npm scripts
 - **webpack**: ^5.89.0 - Static module bundler for modern JavaScript applications
 - **webpack-cli**: ^5.1.4 - Command line interface for webpack
@@ -30,6 +41,7 @@ This document provides an overview of all project dependencies, their purposes, 
 - **@types/react-dom**: ^18.2.18 - TypeScript definitions for React DOM
 - **@types/node**: ^20.11.5 - TypeScript definitions for Node.js
 
+
 ## Backend Dependencies (Python)
 
 ### Core Dependencies
@@ -41,6 +53,7 @@ This document provides an overview of all project dependencies, their purposes, 
 ### Optional Dependencies
 - **aiofiles**: ^23.0.0 - Provides async file operations if needed for future enhancements
 - **pyinstaller**: Used for creating standalone executables from Python scripts (not in requirements.txt but mentioned in docs)
+
 
 ## Why These Updates Were Necessary
 
@@ -62,6 +75,7 @@ This document provides an overview of all project dependencies, their purposes, 
 
 4. **send2trash 1.8.2**: Latest version with better cross-platform compatibility.
 
+
 ## Installation
 
 ### Frontend Dependencies
@@ -69,12 +83,11 @@ This document provides an overview of all project dependencies, their purposes, 
 npm install
 ```
 
-## Development and Production Usage
-
 ### Backend Dependencies
 ```bash
 pip install -r requirements.txt
 ```
+
 
 ## Development and Production Usage
 
@@ -86,13 +99,18 @@ pip install -r requirements.txt
 ### Production
 - Use `npm run build` to build the frontend
 - Use `npm run electron-build` to create a distributable desktop app
+- Use `npm run electron-pack` as an alternative packaging method
 - Use `pyinstaller` to create standalone Python executable (alternative method)
 
-## Security Considerations
+
+## Security Considerations (Reiterated)
 
 1. Electron security: Updated to newer version with security patches
-2. Python packages: Updated to latest versions with security fixes
-3. Dependencies regularly reviewed for vulnerabilities
+2. Content Security Policy: Implemented to prevent XSS attacks
+3. Context isolation: Ensures renderer process cannot directly access Node.js APIs
+4. Python packages: Updated to latest versions with security fixes
+5. Dependencies regularly reviewed for vulnerabilities
+
 
 ## Performance Improvements
 

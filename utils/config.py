@@ -1,91 +1,80 @@
 """
 Configuration module for the duplicate finder application.
 
-This module handles application configuration and settings.
+This module handles application settings and configuration.
 """
 import json
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
-import logging
+from core.models import DuplicateFinderConfig
 
-logger = logging.getLogger(__name__)
+# Define the config file path
+CONFIG_FILE = Path(__file__).parent.parent / "config.json"
 
 
 class Config:
-    """
-    Configuration class to manage application settings.
-    """
+    """Configuration class to manage application settings."""
     
-    def __init__(self, config_path: str = "app_config.json"):
-        self.config_path = Path(config_path)
-        self.default_config = {
-            "last_scan_directory": "",
-            "image_similarity_threshold": 5,
-            "hash_chunk_size": 131072,  # 128KB
-            "max_file_size_for_hashing": 104857600,  # 100MB
-            "file_extensions": [
-                ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp",
-                ".mp3", ".mp4", ".avi", ".mov", ".mkv", ".txt", ".pdf",
-                ".doc", ".docx", ".xls", ".xlsx"
-            ],
-            "auto_select_strategy": "oldest"  # oldest, newest, lowest_res
-        }
-        self.config = self.load_config()
+    def __init__(self):
+        """Initialize the configuration with default values."""
+        self.config_file = CONFIG_FILE
+        self._config = self.load_config()
     
     def load_config(self) -> Dict[str, Any]:
-        """
-        Load configuration from file, or create default if file doesn't exist.
-        
-        Returns:
-            Configuration dictionary
-        """
-        if self.config_path.exists():
+        """Load configuration from file or return defaults."""
+        if self.config_file.exists():
             try:
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                # Merge with defaults to ensure all keys exist
-                for key, value in self.default_config.items():
-                    if key not in config:
-                        config[key] = value
-                logger.info(f"Loaded configuration from {self.config_path}")
-                return config
-            except Exception as e:
-                logger.error(f"Error loading config from {self.config_path}: {e}")
-        
-        # Return default config if file doesn't exist or loading failed
-        logger.info("Using default configuration")
-        return self.default_config.copy()
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"Error loading config file: {e}")
+                return self.get_default_config()
+        else:
+            return self.get_default_config()
+    
+    def get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration values."""
+        # Use the Pydantic model for default config
+        default_config = DuplicateFinderConfig()
+        return default_config.model_dump()
     
     def save_config(self):
-        """
-        Save current configuration to file.
-        """
+        """Save the current configuration to file."""
         try:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, indent=2, ensure_ascii=False)
-            logger.info(f"Configuration saved to {self.config_path}")
+            # Validate the config before saving
+            config_model = DuplicateFinderConfig(**self._config)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self._config, f, indent=2, default=str)
         except Exception as e:
-            logger.error(f"Error saving config to {self.config_path}: {e}")
+            print(f"Error saving config: {e}")
     
     def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get a configuration value.
-        
-        Args:
-            key: Configuration key
-            default: Default value if key doesn't exist
-            
-        Returns:
-            Configuration value or default
-        """
-        return self.config.get(key, default)
+        """Get a configuration value."""
+        return self._config.get(key, default)
     
     def set(self, key: str, value: Any):
-        """
-        Set a configuration value.
-        
-        Args:
-            key: Configuration key
-            value: Configuration value
-        """
-        self.config[key] = value
+        """Set a configuration value."""
+        # Validate the value against the model if it's a known key
+        try:
+            current_config = self._config.copy()
+            current_config[key] = value
+            
+            # Validate the updated config
+            validated_config = DuplicateFinderConfig(**current_config)
+            self._config = validated_config.model_dump()
+        except Exception as e:
+            print(f"Invalid value for {key}: {e}. Keeping original value.")
+    
+    def update(self, updates: Dict[str, Any]):
+        """Update multiple configuration values at once."""
+        try:
+            # Create a new config with the updates
+            new_config = self._config.copy()
+            new_config.update(updates)
+            
+            # Validate the new config
+            validated_config = DuplicateFinderConfig(**new_config)
+            self._config = validated_config.model_dump()
+        except Exception as e:
+            print(f"Error updating config: {e}. Changes not applied.")

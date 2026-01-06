@@ -10,6 +10,7 @@ A high-performance local file processing application that finds duplicate files 
 - **High performance**: Optimized to scan 100k+ files without UI freezing
 - **Auto-selection**: Automatically selects duplicates based on rules (Oldest, Newest, Low Res)
 - **Cross-platform**: Works on Windows, macOS, and Linux
+- **Secure**: Implements Content Security Policy to prevent XSS and other security vulnerabilities
 
 ## Installation
 
@@ -92,6 +93,17 @@ pyinstaller --onefile --windowed main.py
 
 The executable will be created in the `dist/` folder.
 
+## Security Features
+
+This application implements several security measures:
+
+1. **Content Security Policy (CSP)**: Prevents XSS attacks by restricting resource loading
+2. **Context Isolation**: Keeps the renderer process separate from the main process
+3. **Secure IPC**: Uses contextBridge to expose only necessary APIs to the renderer
+4. **File System Security**: Validates file paths before accessing the file system
+
+These security measures ensure that even if the renderer process is compromised, it cannot access sensitive system resources directly.
+
 ## Enhanced User Requirements
 
 ### 1. Folder Selection
@@ -122,11 +134,11 @@ Implement the following methods to detect duplicate files:
 
 #### 3.4 Manual Rules (Custom Patterns)
 Allow users to set up custom rules to detect duplicates based on file name patterns:
-- File names ending with "_1", "_2", "_copy", etc.
-- File names containing "(1)", "(2)", "(Copy)", etc.
-- Custom regular expressions for advanced pattern matching
-- File names containing specific keywords or phrases
-- Case-insensitive matching options
+  - File names ending with "_1", "_2", "_copy", etc.
+  - File names containing "(1)", "(2)", "(Copy)", etc.
+  - Custom regular expressions for advanced pattern matching
+  - File names containing specific keywords or phrases
+  - Case-insensitive matching options
 
 ### 4. Duplicate File Grouping
 - Group potential duplicate files together based on the selected method(s)
@@ -143,6 +155,7 @@ Allow users to set up custom rules to detect duplicates based on file name patte
 - Enable quick selection of files to keep or delete
 
 ### 6. Performance Requirements
+
 #### 6.1 Fast Scanning
 - Optimize the scanning process to be fast and efficient, even for large folders with many files
 - Implement multi-threading or parallel processing for faster scanning
@@ -161,11 +174,11 @@ Allow users to set up custom rules to detect duplicates based on file name patte
 
 ### 8. Customizable Settings
 Allow users to customize the app settings:
-- Folder selection preferences
-- File type filtering options
-- File size filtering options
-- Duplicate detection methods selection
-- Interface language and theme preferences
+  - Folder selection preferences
+  - File type filtering options
+  - File size filtering options
+  - Duplicate detection methods selection
+  - Interface language and theme preferences
 
 ### 9. Additional Features
 

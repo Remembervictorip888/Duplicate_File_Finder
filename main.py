@@ -13,11 +13,13 @@ import datetime
 
 from utils.logger import setup_logger
 from utils.config import Config
-from core.duplicate_detection import find_all_duplicates, merge_duplicate_groups
+from core.duplicate_detection import find_all_duplicates, merge_duplicate_groups, find_all_duplicates_with_models
 from core.file_operations import safe_delete_files, auto_select_duplicates_for_deletion
 from core.ignore_list import IgnoreList, create_default_ignore_list
 from core.scan_history import ScanHistory
 from core.settings_manager import SettingsManager
+from core.models import ScanResult, ScanSettings
+from datetime import datetime as dt
 
 
 def main():
@@ -138,9 +140,9 @@ def main():
     regex_rules = args.regex_rules or settings_manager.get_setting('regex_rules', [])
     keywords = args.keywords or settings_manager.get_setting('keywords', [])
     
-    # Run duplicate detection
-    results = find_all_duplicates(
-        directory_path=scan_directory,
+    # Create scan settings model
+    scan_settings = ScanSettings(
+        directory=Path(scan_directory),
         extensions=args.extensions or settings_manager.get_setting('default_extensions'),
         use_hash=use_hash,
         use_filename=use_filename,
@@ -150,7 +152,6 @@ def main():
         use_advanced_grouping=use_advanced_grouping or settings_manager.get_setting('use_advanced_grouping', False),
         min_file_size_mb=min_size,
         max_file_size_mb=max_size,
-        ignore_list=ignore_list,
         suffix_rules=suffix_rules,
         prefix_rules=prefix_rules,
         containing_rules=containing_rules,
@@ -159,37 +160,63 @@ def main():
         image_similarity_threshold=args.similarity
     )
     
-    # Merge results into unified groups
-    merged_groups = merge_duplicate_groups(results)
+    # Run duplicate detection with models
+    start_time = dt.now()
+    duplicate_groups = find_all_duplicates_with_models(scan_settings)
+    end_time = dt.now()
     
-    # Create scan history record
-    scan_history = ScanHistory()
-    scan_history.add_scan_record(
-        directory=scan_directory,
-        results=results,
-        file_count=len(list(Path(scan_directory).rglob('*'))),  # Approximate file count
-        duplicate_groups=len(merged_groups)
+    # Create scan result model
+    scanned_files_count = len(list(Path(scan_directory).rglob('*')))
+    methods_used = []
+    if use_hash: methods_used.append('hash')
+    if use_size: methods_used.append('size')
+    if use_filename: methods_used.append('filename')
+    if use_custom_rules: methods_used.append('custom_rules')
+    if use_advanced_grouping: methods_used.append('advanced_grouping')
+    
+    scan_result = ScanResult(
+        directory=scan_settings.directory,
+        scanned_files_count=scanned_files_count,
+        duplicate_groups=duplicate_groups,
+        scan_start_time=start_time,
+        scan_end_time=end_time,
+        scan_duration=(end_time - start_time).total_seconds(),
+        methods_used=methods_used
     )
     
+    # Create scan history record using the new database
+    scan_history = ScanHistory()
+    scan_id = scan_history.add_scan_result(scan_result)
+    
     print(f"\nScan Results:")
-    print(f"Found {len(merged_groups)} groups of duplicate files")
+    print(f"Found {len(duplicate_groups)} groups of duplicate files")
     
     # Show summary of results by method
-    for method, method_results in results.items():
-        print(f"{method.capitalize()} method: {len(method_results)} groups")
+    method_counts = {}
+    for group in duplicate_groups:
+        method = group.detection_method
+        if method not in method_counts:
+            method_counts[method] = 0
+        method_counts[method] += 1
     
-    if merged_groups:
+    for method, count in method_counts.items():
+        print(f"{method.capitalize()} method: {count} groups")
+    
+    if duplicate_groups:
         print(f"\nDetailed Results:")
-        for i, group in enumerate(merged_groups, 1):
-            if len(group) > 1:  # Only show groups with actual duplicates
-                print(f"\nGroup {i}:")
-                for filepath in sorted(group):  # Sort files for consistent output
-                    print(f"  - {filepath}")
+        for i, group in enumerate(duplicate_groups, 1):
+            if len(group.files) > 1:  # Only show groups with actual duplicates
+                print(f"\nGroup {i} (Method: {group.detection_method}):")
+                for file_info in sorted(group.files, key=lambda f: str(f.path)):  # Sort files for consistent output
+                    print(f"  - {file_info.path} ({file_info.size} bytes)")
     
     # Auto-select files for deletion based on the chosen strategy
-    if merged_groups:
-        duplicate_groups = [group for group in merged_groups if len(group) > 1]
-        files_to_delete = auto_select_duplicates_for_deletion(duplicate_groups, strategy=args.strategy)
+    if duplicate_groups:
+        # Convert DuplicateGroup models to the format expected by auto_select_duplicates_for_deletion
+        duplicate_groups_paths = [[str(file_info.path) for file_info in group.files] 
+                                  for group in duplicate_groups if len(group.files) > 1]
+        
+        files_to_delete = auto_select_duplicates_for_deletion(duplicate_groups_paths, strategy=args.strategy)
         
         if files_to_delete:
             print(f"\nAuto-selected {len(files_to_delete)} files for deletion using '{args.strategy}' strategy:")
