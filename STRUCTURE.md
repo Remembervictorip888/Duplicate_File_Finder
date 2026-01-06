@@ -1,6 +1,6 @@
 # Project Structure
 
-```
+```markdown
 /duplicate-finder-python
 ├── core/
 │   ├── hashing.py          # File hashing using xxhash

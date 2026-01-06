@@ -16,6 +16,7 @@ A high-performance local file processing application that finds duplicate files 
 1. Make sure you have Python 3.12+ installed
 
 2. Install the required packages:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -49,11 +50,13 @@ python main.py /path/to/directory --similarity 3
 To create a standalone Windows .exe file:
 
 1. Install PyInstaller:
+
 ```bash
 pip install pyinstaller
 ```
 
-2. Build the executable:
+1. Build the executable:
+
 ```bash
 pyinstaller --onefile --windowed main.py
 ```
