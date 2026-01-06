@@ -22,7 +22,7 @@
     "noEmit": false,
     "jsx": "react-jsx",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -45,7 +45,8 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "types.ts"
   ],
   "exclude": [
     "node_modules",
@@ -53,6 +54,7 @@
     "electron",
     "workers",
     "core",
-    "utils"
+    "utils",
+    "jest.config.js"
   ]
 }

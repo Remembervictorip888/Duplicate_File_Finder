@@ -7,7 +7,7 @@ to exclude specific files, folders, or patterns from scanning.
 import os
 import re
 from pathlib import Path
-from typing import List, Set, Pattern, Union
+from typing import List, Set, Pattern, Union, Tuple
 import logging
 
 logger = logging.getLogger(__name__)

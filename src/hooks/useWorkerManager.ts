@@ -105,12 +105,15 @@ export const useWorkerManager = (): UseWorkerManagerResult => {
 
 export const useWorkerActions = (
   worker: Worker | null, 
-  setProcessState: (state: 'idle' | 'processing' | 'done') => void
+  setProcessState: (state: 'idle' | 'processing' | 'done') => void,
+  setStatusMessage: (message: string) => void
 ) => {
   const processFiles = useCallback(async (files: FileList) => {
     electronLogger.info('Processing files: ' + files.length + ' files');
     if (!worker) {
       electronLogger.error('Worker not initialized yet.');
+      setStatusMessage('Worker not initialized yet.');
+      setProcessState('idle');
       return;
     }
     
@@ -123,6 +126,7 @@ export const useWorkerActions = (
 
     if (imageFiles.length < 2) {
       electronLogger.warn('Not enough images to compare');
+      setStatusMessage('Need at least 2 image files to find duplicates');
       setProcessState('idle');
       return;
     }
@@ -139,9 +143,10 @@ export const useWorkerActions = (
       });
     } catch (error) {
       electronLogger.error('Error preparing files for worker: ' + (error instanceof Error ? error.message : String(error)));
+      setStatusMessage('Failed to prepare files for processing');
       setProcessState('idle');
     }
-  }, [worker, setProcessState]);
+  }, [worker, setProcessState, setStatusMessage]);
 
   return { processFiles };
 };
