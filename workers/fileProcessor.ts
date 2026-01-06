@@ -1,10 +1,11 @@
-// File processing Web Worker
-// This worker will handle hashing and duplicate detection without blocking the UI
-
-interface FileProcessorMessage {
-  type: 'processFiles';
-  files: ProcessedFileData[];
-}
+/**
+ * Web Worker for processing files to find duplicates
+ */
+ 
+// Simple console-based logging for the worker
+const workerLog = (level: string, message: string) => {
+  console.log(`[Worker ${level.toUpperCase()}] ${message}`);
+};
 
 interface ProcessedFileData {
   path: string;
@@ -38,31 +39,32 @@ interface FileProcessingError {
 const CHUNK_SIZE = 50; // Process files in chunks of 50
 
 // This is a module that will run in the worker context
-console.log('Worker initialized');
-self.onmessage = async function(e: MessageEvent<FileProcessorMessage>) {
-  console.log('Worker received message:', e.data.type);
+workerLog('info', 'Worker initialized');
+
+self.onmessage = function(e) {
+  workerLog('info', 'Worker received message: ' + e.data.type);
+  
   const { type, files } = e.data;
   
   if (type === 'processFiles') {
-    try {
-      console.log(`Processing ${files.length} files`);
-      // Process files in chunks to improve scalability
-      const processedFiles = await processFilesWithHashesInChunks(files);
+    workerLog('info', `Processing ${files.length} files`);
+    // Process the files and find duplicates
+    processFilesWithHashesInChunks(files).then(processedFiles => {
       const duplicates = findDuplicates(processedFiles);
+      workerLog('info', `Found ${duplicates.length} duplicate groups`);
       
-      console.log(`Found ${duplicates.length} duplicate groups`);
-      // Send the final results back to the main thread
+      // Send results back to main thread
       self.postMessage({
         type: 'completed',
         groups: duplicates
       });
-    } catch (error) {
-      console.error('Error in file processing:', error);
+    }).catch(error => {
+      workerLog('error', `Error processing files: ${error.message}`);
       self.postMessage({
         type: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error.message
       });
-    }
+    });
   }
 };
 
@@ -70,12 +72,12 @@ async function processFilesWithHashesInChunks(fileArray: ProcessedFileData[]): P
   const results: ProcessedFile[] = [];
   const errors: FileProcessingError[] = [];
   
-  console.log(`Processing ${fileArray.length} files in chunks of ${CHUNK_SIZE}`);
+  workerLog('info', `Processing ${fileArray.length} files in chunks of ${CHUNK_SIZE}`);
   
   // Process files in chunks
   for (let i = 0; i < fileArray.length; i += CHUNK_SIZE) {
     const chunk = fileArray.slice(i, i + CHUNK_SIZE);
-    console.log(`Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(fileArray.length / CHUNK_SIZE)}`);
+    workerLog('info', `Processing chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(fileArray.length / CHUNK_SIZE)}`);
     
     // Process the current chunk
     for (let j = 0; j < chunk.length; j++) {
@@ -106,7 +108,7 @@ async function processFilesWithHashesInChunks(fileArray: ProcessedFileData[]): P
           name: name,
           error: error instanceof Error ? error.message : 'Unknown error'
         });
-        console.error(`Could not process file ${name}:`, error);
+        workerLog('error', `Could not process file ${name}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
@@ -115,11 +117,11 @@ async function processFilesWithHashesInChunks(fileArray: ProcessedFileData[]): P
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   
-  console.log(`Processing completed: ${results.length} files processed, ${errors.length} errors`);
+  workerLog('info', `Processing completed: ${results.length} files processed, ${errors.length} errors`);
   
   // Report any errors to the main thread
   if (errors.length > 0) {
-    console.log(`Reporting ${errors.length} errors to main thread`);
+    workerLog('info', `Reporting ${errors.length} errors to main thread`);
     self.postMessage({
       type: 'errors',
       errors: errors
@@ -129,6 +131,9 @@ async function processFilesWithHashesInChunks(fileArray: ProcessedFileData[]): P
   return results;
 }
 
+// Ensure this file is treated as a module
+export {};
+
 async function hashFile(arrayBuffer: ArrayBuffer): Promise<string> {
   try {
     const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
@@ -136,7 +141,7 @@ async function hashFile(arrayBuffer: ArrayBuffer): Promise<string> {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
   } catch (error) {
-    console.error('Error hashing file:', error);
+    workerLog('error', `Error hashing file: ${error instanceof Error ? error.message : String(error)}`);
     throw new Error(`Failed to hash file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -168,6 +173,6 @@ function findDuplicates(processedFiles: ProcessedFile[]): DuplicateGroup[] {
     }
   });
   
-  console.log(`Found ${duplicateGroups.length} duplicate groups`);
+  workerLog('info', `Found ${duplicateGroups.length} duplicate groups`);
   return duplicateGroups;
 }

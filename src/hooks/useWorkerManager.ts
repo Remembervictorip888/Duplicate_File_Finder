@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ProcessedFile } from '../../types';
 import { filterImageFiles, convertFilesToData } from '../services/fileService';
+import electronLogger from '../services/electronLogger';
 
 interface WorkerDuplicateGroup {
   id: string;
@@ -32,19 +33,19 @@ export const useWorkerManager = (): UseWorkerManagerResult => {
 
   // Initialize Web Worker
   useEffect(() => {
-    console.log('Initializing worker...');
+    electronLogger.info('Initializing worker...');
     
     if (typeof Worker !== 'undefined') {
       try {
         // Create the worker from the JavaScript file
         const workerUrl = new URL('../workers/fileProcessor.js', import.meta.url);
-        console.log('Creating worker with URL:', workerUrl);
+        electronLogger.info('Creating worker with URL: ' + workerUrl);
         
         const newWorker = new Worker(workerUrl);
         
         // Handle messages from the worker
         newWorker.onmessage = (e) => {
-          console.log('Received message from worker:', e.data);
+          electronLogger.info('Received message from worker: ' + JSON.stringify(e.data));
           const { type, groups, error, index, total, fileName, errors } = e.data;
           
           switch (type) {
@@ -67,7 +68,7 @@ export const useWorkerManager = (): UseWorkerManagerResult => {
               break;
               
             case 'error':
-              console.error('Worker error:', error);
+              electronLogger.error('Worker error: ' + error);
               setStatusMessage(`Error: ${error}`);
               setProcessState('idle');
               break;
@@ -78,19 +79,19 @@ export const useWorkerManager = (): UseWorkerManagerResult => {
         
         // Cleanup function
         return () => {
-          console.log('Terminating worker...');
+          electronLogger.info('Terminating worker...');
           newWorker.terminate();
         };
       } catch (err) {
-        console.error('Error initializing worker:', err);
+        electronLogger.error('Error initializing worker: ' + (err instanceof Error ? err.message : String(err)));
         setStatusMessage('Failed to initialize the processing worker. Please check the console for details.');
       }
     } else {
-      console.error('Web Workers are not supported in this browser');
+      electronLogger.error('Web Workers are not supported in this browser');
       setStatusMessage('Web Workers are not supported in your browser. Please use a modern browser.');
     }
     
-    console.log('Worker initialization complete');
+    electronLogger.info('Worker initialization complete');
   }, []);
 
   return {
@@ -107,9 +108,9 @@ export const useWorkerActions = (
   setProcessState: (state: 'idle' | 'processing' | 'done') => void
 ) => {
   const processFiles = useCallback(async (files: FileList) => {
-    console.log('Processing files:', files);
+    electronLogger.info('Processing files: ' + files.length + ' files');
     if (!worker) {
-      console.error('Worker not initialized yet.');
+      electronLogger.error('Worker not initialized yet.');
       return;
     }
     
@@ -118,10 +119,10 @@ export const useWorkerActions = (
     // Filter image files using the service
     const imageFiles = filterImageFiles(files);
 
-    console.log(`Found ${imageFiles.length} image files out of ${files.length} total files`);
+    electronLogger.info(`Found ${imageFiles.length} image files out of ${files.length} total files`);
 
     if (imageFiles.length < 2) {
-      console.warn('Not enough images to compare');
+      electronLogger.warn('Not enough images to compare');
       setProcessState('idle');
       return;
     }
@@ -129,7 +130,7 @@ export const useWorkerActions = (
     try {
       // Prepare file data for the worker using the service
       const fileData = await convertFilesToData(imageFiles);
-      console.log(`Sending ${fileData.length} files to worker for processing`);
+      electronLogger.info(`Sending ${fileData.length} files to worker for processing`);
       
       // Send file data to the worker for processing
       worker.postMessage({
@@ -137,7 +138,7 @@ export const useWorkerActions = (
         files: fileData
       });
     } catch (error) {
-      console.error('Error preparing files for worker:', error);
+      electronLogger.error('Error preparing files for worker: ' + (error instanceof Error ? error.message : String(error)));
       setProcessState('idle');
     }
   }, [worker, setProcessState]);

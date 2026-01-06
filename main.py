@@ -1,33 +1,35 @@
 """
-Duplicate File Finder Application.
+Duplicate File Finder - Main Application
 
-This application finds and manages duplicate files based on content and visual similarity.
+This script provides a command-line interface for finding and managing duplicate files.
 """
 import sys
 import os
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict
 import logging
 import argparse
-
-# Add the project root to the Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+import datetime
 
 from utils.logger import setup_logger
 from utils.config import Config
-from core.scanning import scan_directory_for_duplicates
-from core.hashing import find_duplicates_by_hash
-from core.image_similarity import find_similar_images, find_exact_duplicate_images
+from core.duplicate_detection import find_all_duplicates, merge_duplicate_groups
 from core.file_operations import safe_delete_files, auto_select_duplicates_for_deletion
+from core.ignore_list import IgnoreList, create_default_ignore_list
+from core.scan_history import ScanHistory
+from core.settings_manager import SettingsManager
 
 
 def main():
     """
     Main entry point for the duplicate file finder application.
     """
+    # Generate a timestamped log filename for this run
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"scan_run_{timestamp}.log"
+    
     # Setup logging
-    logger = setup_logger('duplicate_finder', 'app.log', logging.INFO)
+    logger = setup_logger('duplicate_finder', log_filename, logging.INFO)
     logger.info("Starting Duplicate File Finder Application")
     
     # Load configuration
@@ -38,13 +40,62 @@ def main():
     parser.add_argument('directory', nargs='?', help='Directory to scan for duplicates')
     parser.add_argument('--strategy', choices=['oldest', 'newest', 'lowest_res'], 
                        default=config.get('auto_select_strategy', 'oldest'),
-                       help='Auto-selection strategy for duplicates')
+                       help='Strategy for auto-selecting duplicates for deletion')
     parser.add_argument('--delete', action='store_true', 
-                       help='Actually delete the selected duplicates')
-    parser.add_argument('--similarity', type=int, default=config.get('image_similarity_threshold', 5),
-                       help='Threshold for image similarity (0-20, lower = more similar)')
+                       help='Actually delete the auto-selected duplicates (moves to Recycle Bin)')
+    parser.add_argument('--similarity', type=int, default=config.get('image_similarity_threshold', 10), 
+                       help='Similarity threshold for images (0-20, lower = more similar)')
+    parser.add_argument('--extensions', nargs='+', 
+                       help='File extensions to include in the scan (e.g., .jpg .png .mp4)')
+    parser.add_argument('--method', choices=['hash', 'filename', 'size', 'all'], 
+                       default='all',
+                       help='Method to use for duplicate detection')
+    parser.add_argument('--use-custom-rules', action='store_true',
+                       help='Enable custom rule-based duplicate detection')
+    parser.add_argument('--use-advanced-grouping', action='store_true',
+                       help='Enable advanced grouping of potential duplicates based on naming patterns')
+    parser.add_argument('--min-size', type=float,
+                       help='Minimum file size in MB to include in scan')
+    parser.add_argument('--max-size', type=float,
+                       help='Maximum file size in MB to include in scan')
+    parser.add_argument('--ignore-list-file', 
+                       help='Path to a file containing ignore patterns')
+    parser.add_argument('--export-settings', 
+                       help='Export current settings to a file')
+    parser.add_argument('--import-settings', 
+                       help='Import settings from a file')
+    parser.add_argument('--suffix-rules', nargs='+', 
+                       help='Filename suffixes to match (e.g., _1 _copy)')
+    parser.add_argument('--prefix-rules', nargs='+', 
+                       help='Filename prefixes to match')
+    parser.add_argument('--containing-rules', nargs='+', 
+                       help='Substrings to look for in filenames')
+    parser.add_argument('--regex-rules', nargs='+', 
+                       help='Regex patterns to match in filenames')
+    parser.add_argument('--keywords', nargs='+', 
+                       help='Keywords to search for in filenames')
     
     args = parser.parse_args()
+    
+    # Handle settings import/export before loading config
+    settings_manager = SettingsManager()
+    
+    if args.import_settings:
+        if settings_manager.import_settings(args.import_settings):
+            settings_manager.save_settings()
+            print(f"Settings imported from {args.import_settings}")
+            return 0
+        else:
+            print(f"Failed to import settings from {args.import_settings}")
+            return 1
+    
+    if args.export_settings:
+        if settings_manager.export_settings(args.export_settings):
+            print(f"Settings exported to {args.export_settings}")
+            return 0
+        else:
+            print(f"Failed to export settings to {args.export_settings}")
+            return 1
     
     # If no directory provided, use the last scanned directory or current directory
     scan_directory = args.directory
@@ -54,94 +105,114 @@ def main():
     # Validate directory
     if not Path(scan_directory).is_dir():
         logger.error(f"Directory does not exist: {scan_directory}")
-        sys.exit(1)
+        return 1
     
     # Update config with the current directory
     config.set('last_scan_directory', scan_directory)
     config.save_config()
     
+    # Set up ignore list
+    ignore_list = create_default_ignore_list()
+    if args.ignore_list_file and os.path.exists(args.ignore_list_file):
+        ignore_list.load_from_file(args.ignore_list_file)
+        logger.info(f"Loaded ignore list from: {args.ignore_list_file}")
+    
     logger.info(f"Scanning directory: {scan_directory}")
     
-    # Scan for files
-    file_paths, total_files = scan_directory_for_duplicates(scan_directory)
-    logger.info(f"Found {total_files} files to process")
+    # Convert method argument to boolean flags
+    use_hash = args.method in ['hash', 'all']
+    use_filename = args.method in ['filename', 'all']
+    use_size = args.method in ['size', 'all']
+    use_patterns = args.method in ['all']  # Patterns are used with 'all' method
+    use_custom_rules = args.use_custom_rules
+    use_advanced_grouping = args.use_advanced_grouping
     
-    # Separate image files from other files
-    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
-    image_files = [f for f in file_paths if Path(f).suffix.lower() in image_extensions]
-    other_files = [f for f in file_paths if Path(f).suffix.lower() not in image_extensions]
+    # Use settings or command line arguments for configuration
+    min_size = args.min_size if args.min_size is not None else settings_manager.get_setting('min_file_size_mb')
+    max_size = args.max_size if args.max_size is not None else settings_manager.get_setting('max_file_size_mb')
     
-    logger.info(f"Processing {len(image_files)} images and {len(other_files)} other files")
+    # Use settings for rules if not provided via command line
+    suffix_rules = args.suffix_rules or settings_manager.get_setting('suffix_rules', [])
+    prefix_rules = args.prefix_rules or settings_manager.get_setting('prefix_rules', [])
+    containing_rules = args.containing_rules or settings_manager.get_setting('containing_rules', [])
+    regex_rules = args.regex_rules or settings_manager.get_setting('regex_rules', [])
+    keywords = args.keywords or settings_manager.get_setting('keywords', [])
     
-    # Find duplicates by hash for non-image files
-    hash_duplicates = {}
-    if other_files:
-        logger.info("Finding duplicates by hash for non-image files...")
-        hash_duplicates = find_duplicates_by_hash(other_files)
-        logger.info(f"Found {len(hash_duplicates)} groups of hash duplicates")
+    # Run duplicate detection
+    results = find_all_duplicates(
+        directory_path=scan_directory,
+        extensions=args.extensions or settings_manager.get_setting('default_extensions'),
+        use_hash=use_hash,
+        use_filename=use_filename,
+        use_size=use_size,
+        use_patterns=use_patterns,
+        use_custom_rules=use_custom_rules or settings_manager.get_setting('use_custom_rules', False),
+        use_advanced_grouping=use_advanced_grouping or settings_manager.get_setting('use_advanced_grouping', False),
+        min_file_size_mb=min_size,
+        max_file_size_mb=max_size,
+        ignore_list=ignore_list,
+        suffix_rules=suffix_rules,
+        prefix_rules=prefix_rules,
+        containing_rules=containing_rules,
+        regex_rules=regex_rules,
+        keywords=keywords,
+        image_similarity_threshold=args.similarity
+    )
     
-    # Find exact duplicate images
-    image_duplicates = {}
-    if image_files:
-        logger.info("Finding exact duplicate images...")
-        image_duplicates = find_exact_duplicate_images(image_files)
-        logger.info(f"Found {len(image_duplicates)} groups of exact image duplicates")
+    # Merge results into unified groups
+    merged_groups = merge_duplicate_groups(results)
+    
+    # Create scan history record
+    scan_history = ScanHistory()
+    scan_history.add_scan_record(
+        directory=scan_directory,
+        results=results,
+        file_count=len(list(Path(scan_directory).rglob('*'))),  # Approximate file count
+        duplicate_groups=len(merged_groups)
+    )
+    
+    print(f"\nScan Results:")
+    print(f"Found {len(merged_groups)} groups of duplicate files")
+    
+    # Show summary of results by method
+    for method, method_results in results.items():
+        print(f"{method.capitalize()} method: {len(method_results)} groups")
+    
+    if merged_groups:
+        print(f"\nDetailed Results:")
+        for i, group in enumerate(merged_groups, 1):
+            if len(group) > 1:  # Only show groups with actual duplicates
+                print(f"\nGroup {i}:")
+                for filepath in sorted(group):  # Sort files for consistent output
+                    print(f"  - {filepath}")
+    
+    # Auto-select files for deletion based on the chosen strategy
+    if merged_groups:
+        duplicate_groups = [group for group in merged_groups if len(group) > 1]
+        files_to_delete = auto_select_duplicates_for_deletion(duplicate_groups, strategy=args.strategy)
         
-        # Find similar images (visual similarity)
-        logger.info(f"Finding visually similar images (threshold: {args.similarity})...")
-        similar_image_groups = find_similar_images(image_files, args.similarity)
-        logger.info(f"Found {len(similar_image_groups)} groups of visually similar images")
-    
-    # Combine all duplicate groups
-    all_duplicate_groups = []
-    
-    # Add hash duplicates
-    for hash_val, file_list in hash_duplicates.items():
-        if len(file_list) > 1:
-            all_duplicate_groups.append(file_list)
-    
-    # Add image duplicates
-    for hash_val, file_list in image_duplicates.items():
-        if len(file_list) > 1:
-            all_duplicate_groups.append(file_list)
-    
-    # Add visually similar images
-    for group in similar_image_groups:
-        if len(group) > 1:
-            all_duplicate_groups.append(group)
-    
-    # Print results
-    print(f"\n--- Duplicate File Analysis Results ---")
-    print(f"Total files scanned: {total_files}")
-    print(f"Non-image duplicates: {len(hash_duplicates)} groups")
-    print(f"Exact image duplicates: {len(image_duplicates)} groups")
-    print(f"Visually similar images: {len(similar_image_groups)} groups")
-    print(f"Total duplicate groups: {len(all_duplicate_groups)}")
-    
-    # Auto-select files for deletion based on strategy
-    if all_duplicate_groups:
-        files_to_delete = auto_select_duplicates_for_deletion(all_duplicate_groups, args.strategy)
-        print(f"Auto-selected {len(files_to_delete)} files for deletion using '{args.strategy}' strategy")
-        
-        # Show the files that would be deleted (without actually deleting)
-        print("\nFiles that would be deleted:")
-        for i, file_path in enumerate(files_to_delete[:10]):  # Show first 10
-            print(f"  {i+1}. {file_path}")
-        if len(files_to_delete) > 10:
-            print(f"  ... and {len(files_to_delete) - 10} more")
-        
-        # Actually delete if requested
-        if args.delete:
-            print(f"\nMoving {len(files_to_delete)} files to Recycle Bin...")
-            successful, failed = safe_delete_files(files_to_delete)
-            print(f"Successfully moved {len(successful)} files to Recycle Bin")
-            if failed:
-                print(f"Failed to move {len(failed)} files: {failed}")
+        if files_to_delete:
+            print(f"\nAuto-selected {len(files_to_delete)} files for deletion using '{args.strategy}' strategy:")
+            for i, filepath in enumerate(sorted(files_to_delete)[:10]):  # Show first 10, sorted
+                print(f"  {i+1}. {filepath}")
+            if len(files_to_delete) > 10:
+                print(f"  ... and {len(files_to_delete) - 10} more")
+            
+            # Actually delete if requested
+            if args.delete:
+                print(f"\nMoving {len(files_to_delete)} files to Recycle Bin...")
+                successful, failed = safe_delete_files(files_to_delete)
+                print(f"Successfully moved {len(successful)} files to Recycle Bin")
+                if failed:
+                    print(f"Failed to move {len(failed)} files: {failed}")
+            else:
+                print(f"\nUse --delete flag to actually move these files to Recycle Bin")
         else:
-            print(f"\nUse --delete flag to actually move these files to Recycle Bin")
+            print(f"\nNo files were selected for deletion using '{args.strategy}' strategy.")
     
     logger.info("Application completed successfully")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit(main())

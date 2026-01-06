@@ -2,10 +2,11 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { join, dirname } = require('path');
 const { existsSync, readdirSync, readFileSync, statSync } = require('fs');
 const { platform } = require('process');
+const { mkdirSync } = require('fs');
 
 // Function to create the main window with detailed error handling
 const createWindow = () => {
-  console.log('Creating main window...');
+  log('info', 'Creating main window...');
   
   const window = new BrowserWindow({
     width: 1200,
@@ -13,7 +14,7 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: join(__dirname, 'preload.js')
+      preload: join(__dirname, 'preload.cjs')
     },
     icon: join(__dirname, '..', 'public', 'favicon.ico') // Use your app's icon if available
   });
@@ -23,41 +24,70 @@ const createWindow = () => {
     ? new URL(`file://${join(__dirname, '..', 'dist', 'index.html')}`)
     : new URL('http://localhost:5173'); // Default to 5173, Vite typically uses this
 
-  console.log(`Loading URL: ${appURL.href}`);
+  log('info', `Loading URL: ${appURL.href}`);
   
   window.loadURL(appURL.href)
     .then(() => {
-      console.log('Window loaded successfully');
+      log('info', 'Window loaded successfully');
     })
     .catch(err => {
-      console.error('Error loading window:', err);
+      log('error', `Error loading window: ${err}`);
     });
   
   // Open dev tools in development mode
   if (!app.isPackaged) {
-    console.log('Opening dev tools in development mode');
+    log('info', 'Opening dev tools in development mode');
     window.webContents.openDevTools();
   }
 
   // Add error handling for the window
   window.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error(`WebContents failed to load: ${errorCode} - ${errorDescription}`);
+    log('error', `WebContents failed to load: ${errorCode} - ${errorDescription}`);
   });
 
   window.webContents.on('render-process-gone', (event, details) => {
-    console.error('Render process gone:', details);
+    log('error', 'Render process gone:', details);
   });
 
   window.on('unresponsive', () => {
-    console.warn('Window became unresponsive');
+    log('warn', 'Window became unresponsive');
   });
 
   return window;
 };
 
+// Function to handle logging with file output
+const log = (level, message, ...args) => {
+  // Create logs directory if it doesn't exist
+  const logsDir = join(__dirname, '..', 'logs');
+  if (!existsSync(logsDir)) {
+    mkdirSync(logsDir, { recursive: true });
+  }
+  
+  // Create a timestamped log file name
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const logFile = join(logsDir, `app_${timestamp}.log`);
+  
+  // Format the log message
+  const timestampStr = new Date().toISOString();
+  const formattedMessage = `${timestampStr} - [${level.toUpperCase()}] - ${message} ${args.join(' ')}`;
+  
+  // Write to log file
+  const fs = require('fs');
+  fs.appendFileSync(logFile, formattedMessage + '\n');
+  
+  // Also output to console
+  console.log(`[${level.toUpperCase()}]`, message, ...args);
+};
+
+// Handle logging requests from renderer process
+ipcMain.handle('log', (event, level, message) => {
+  log(level, message);
+});
+
 // Handle folder selection with error handling
 ipcMain.handle('select-folder', async () => {
-  console.log('Handling folder selection request');
+  log('info', 'Handling folder selection request');
   try {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory', 'multiSelections']
@@ -66,14 +96,14 @@ ipcMain.handle('select-folder', async () => {
     if (!result.canceled && result.filePaths.length > 0) {
       const selectedPath = result.filePaths[0];
       
-      console.log(`Selected path: ${selectedPath}`);
+      log('info', `Selected path: ${selectedPath}`);
       
       // Check if the path exists and is a directory
       if (existsSync(selectedPath) && statSync(selectedPath).isDirectory()) {
         try {
           // Get files in the directory
           const allFiles = readdirSync(selectedPath);
-          console.log(`Found ${allFiles.length} total files in ${selectedPath}`);
+          log('info', `Found ${allFiles.length} total files in ${selectedPath}`);
           
           // Filter for image files
           const imageFiles = allFiles.filter(file => {
@@ -83,7 +113,7 @@ ipcMain.handle('select-folder', async () => {
                    /\.(jpe?g|png|gif|bmp|webp)$/i.test(file);
           });
           
-          console.log(`Found ${imageFiles.length} image files in ${selectedPath}`);
+          log('info', `Found ${imageFiles.length} image files in ${selectedPath}`);
           
           return {
             path: selectedPath,
@@ -92,28 +122,28 @@ ipcMain.handle('select-folder', async () => {
             success: true
           };
         } catch (err) {
-          console.error('Error reading directory:', err);
+          log('error', `Error reading directory: ${err}`);
           return {
             success: false,
             error: err.message
           };
         }
       } else {
-        console.error(`Path does not exist or is not a directory: ${selectedPath}`);
+        log('error', `Path does not exist or is not a directory: ${selectedPath}`);
         return {
           success: false,
           error: 'Selected path does not exist or is not a directory'
         };
       }
     } else {
-      console.log('Folder selection was cancelled or no folder selected');
+      log('info', 'Folder selection was cancelled or no folder selected');
       return {
         success: false,
         error: 'No folder selected or selection cancelled'
       };
     }
   } catch (error) {
-    console.error('Error in folder selection:', error);
+    log('error', `Error in folder selection: ${error}`);
     return {
       success: false,
       error: error.message
@@ -123,16 +153,16 @@ ipcMain.handle('select-folder', async () => {
 
 // Handle file reading
 ipcMain.handle('read-file-content', async (event, filePath) => {
-  console.log('Handling file reading request for:', filePath);
+  log('info', `Handling file reading request for: ${filePath}`);
   try {
     const fileContent = readFileSync(filePath);
-    console.log(`Successfully read file: ${filePath}, size: ${fileContent.length} bytes`);
+    log('info', `Successfully read file: ${filePath}, size: ${fileContent.length} bytes`);
     return {
       success: true,
       content: fileContent.buffer.slice(fileContent.byteOffset, fileContent.byteOffset + fileContent.byteLength)
     };
   } catch (error) {
-    console.error('Error reading file:', error);
+    log('error', `Error reading file: ${error}`);
     return {
       success: false,
       error: error.message
@@ -142,31 +172,31 @@ ipcMain.handle('read-file-content', async (event, filePath) => {
 
 // Add error handling for the app
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  log('error', `Uncaught Exception: ${error}`);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  log('error', `Unhandled Rejection at: ${promise}, reason: ${reason}`);
 });
 
 app.whenReady().then(() => {
-  console.log('App is ready, creating window...');
+  log('info', 'App is ready, creating window...');
   createWindow();
 
   app.on('activate', () => {
-    console.log('App activated');
+    log('info', 'App activated');
     if (BrowserWindow.getAllWindows().length === 0) {
-      console.log('No windows exist, creating new window');
+      log('info', 'No windows exist, creating new window');
       createWindow();
     }
   });
 });
 
 app.on('window-all-closed', () => {
-  console.log('All windows closed');
+  log('info', 'All windows closed');
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-console.log(`App starting, platform: ${platform}, packaged: ${app.isPackaged}`);
+log('info', `App starting, platform: ${platform}, packaged: ${app.isPackaged}`);

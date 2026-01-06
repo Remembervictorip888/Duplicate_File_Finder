@@ -1,38 +1,53 @@
-/**
- * File service to handle file-related operations
- */
+import electronLogger from '../services/electronLogger';
 
+export interface ProcessedFile {
+  name: string;
+  path: string;
+  size: number;
+  lastModified: number;
+  content?: ArrayBuffer;
+}
+
+/**
+ * Filter files to only include image files
+ */
 export const filterImageFiles = (files: FileList): File[] => {
-  return Array.from(files).filter(file => 
-    /image\/(jpeg|png|gif|bmp|webp)/.test(file.type)
-  );
+  const imageFiles: File[] = [];
+  const imageRegex = /\.(jpe?g|png|gif|bmp|webp|svg)$/i;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file && imageRegex.test(file.name)) {
+      imageFiles.push(file);
+    } else {
+      electronLogger.info(`Skipping non-image file: ${file?.name || 'unknown'}`);
+    }
+  }
+
+  return imageFiles;
 };
 
-export const convertFilesToData = async (files: File[]): Promise<Array<{
-  path: string;
-  name: string;
-  size: number;
-  type: string;
-  arrayBuffer: ArrayBuffer;
-}>> => {
-  const fileDataPromises = files.map(async (file) => {
-    try {
-      console.log(`Reading file: ${file.name}`);
-      const arrayBuffer = await file.arrayBuffer();
-      return {
-        path: (file as any).webkitRelativePath || file.name,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        arrayBuffer
-      };
-    } catch (error) {
-      console.error(`Error reading file ${file.name}:`, error);
-      throw new Error(`Failed to read file ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
+/**
+ * Convert File objects to data that can be processed by the worker
+ */
+export const convertFilesToData = async (files: File[]): Promise<ProcessedFile[]> => {
+  const results: ProcessedFile[] = [];
 
-  // Wait for all array buffers to be ready
-  const fileDataResults = await Promise.all(fileDataPromises);
-  return fileDataResults;
+  for (const file of files) {
+    electronLogger.info(`Reading file: ${file.name}`);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      results.push({
+        name: file.name,
+        path: URL.createObjectURL(file),
+        size: file.size,
+        lastModified: file.lastModified,
+        content: arrayBuffer
+      });
+    } catch (error) {
+      electronLogger.error(`Error reading file ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return results;
 };

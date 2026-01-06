@@ -63,6 +63,107 @@ pyinstaller --onefile --windowed main.py
 
 The executable will be created in the `dist/` folder.
 
+## Enhanced User Requirements
+
+### 1. Folder Selection
+- Allow users to select a folder to search for duplicate files
+- Support searching within subfolders (recursive scanning)
+- Provide visual feedback during the scanning process
+
+### 2. File Type Filtering
+- Focus on searching for duplicate images and videos
+- Support common image formats: JPG, JPEG, PNG, GIF, BMP, TIFF, WEBP, etc.
+- Support common video formats: MP4, AVI, MOV, WMV, MKV, FLV, WEBM, etc.
+- Allow users to select specific file types to include in the scan
+
+### 3. Duplicate Detection Methods
+Implement the following methods to detect duplicate files:
+
+#### 3.1 File Name Comparison
+- Compare file names (ignore case and file extension)
+- Handle common naming patterns that indicate duplicates
+
+#### 3.2 File Size Comparison
+- Compare file sizes to identify potential duplicates
+- Group files with identical sizes
+
+#### 3.3 File Content (MD5 HASH)
+- Compare file content using MD5 hash to identify exact duplicates
+- Use efficient hashing algorithms for fast processing
+
+#### 3.4 Manual Rules (Custom Patterns)
+Allow users to set up custom rules to detect duplicates based on file name patterns:
+- File names ending with "_1", "_2", "_copy", etc.
+- File names containing "(1)", "(2)", "(Copy)", etc.
+- Custom regular expressions for advanced pattern matching
+- File names containing specific keywords or phrases
+- Case-insensitive matching options
+
+### 4. Duplicate File Grouping
+- Group potential duplicate files together based on the selected method(s)
+- Example groupings:
+  - `abc.jpg` and `abc_1.jpg` should be grouped as potential duplicates
+  - `abc (1).jpg`, `abc (2).jpg`, and `abc.jpg` should be grouped as potential duplicates
+- Allow users to select which files in each group to keep or delete
+
+### 5. Result Display
+- Display the grouped duplicate files in a clear and easy-to-read format
+- Show file name and path, file size, file type
+- Provide preview thumbnails for images and videos (optional, user toggleable)
+- Allow users to sort and filter results
+- Enable quick selection of files to keep or delete
+
+### 6. Performance Requirements
+#### 6.1 Fast Scanning
+- Optimize the scanning process to be fast and efficient, even for large folders with many files
+- Implement multi-threading or parallel processing for faster scanning
+- Provide progress indicators during scanning
+
+#### 6.2 Size Filtering
+- Allow users to exclude files from the scan based on size:
+  - Files smaller than X MB
+  - Files larger than X MB
+- This helps in more effective scanning by focusing on relevant files
+
+### 7. Clear Instructions
+- Provide clear instructions and tooltips to help users understand the app features and options
+- Include contextual help for each feature
+- Offer a quick start guide for new users
+
+### 8. Customizable Settings
+Allow users to customize the app settings:
+- Folder selection preferences
+- File type filtering options
+- File size filtering options
+- Duplicate detection methods selection
+- Interface language and theme preferences
+
+### 9. Additional Features
+
+#### 9.1 Ignore List
+- Allow users to add files, folders, file names, or file sizes to an ignore list
+- Exclude items on the ignore list from the scanning process
+- Support both exact matches and pattern-based ignores
+
+#### 9.2 Scan History
+- Keep a record of previous scans, including:
+  - Folder that was scanned
+  - Date and time of the scan
+  - Number of duplicate files found
+  - Actions taken (files deleted, kept, etc.)
+- Allow users to view and restore previous scan results
+
+#### 9.3 Settings Export and Import
+- Allow users to export and import the app settings
+- Enable backup and transfer of preferences between installations
+- Support sharing of common configurations
+
+#### 9.4 Advanced Features
+- Batch operations for managing multiple duplicate groups at once
+- Preview before deletion to prevent accidental file removal
+- Integration with cloud storage for scanning synced files
+- Scheduled scanning for regular cleanup
+
 ## Architecture
 
 The application follows the Model-View-Controller (MVC) pattern with clear separation of concerns:

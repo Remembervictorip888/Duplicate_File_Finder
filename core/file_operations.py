@@ -5,7 +5,7 @@ This module provides functions for safely deleting files to the Recycle Bin.
 """
 from send2trash import send2trash
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ def safe_delete_files(file_paths: List[str]) -> Tuple[List[str], List[str]]:
         file_paths: List of file paths to delete safely
         
     Returns:
-        Tuple of (list of successfully deleted files, list of failed deletions)
+        Tuple of (successful_deletions, failed_deletions)
     """
     successful = []
     failed = []
@@ -30,7 +30,7 @@ def safe_delete_files(file_paths: List[str]) -> Tuple[List[str], List[str]]:
             successful.append(file_path)
             logger.info(f"Moved file to Recycle Bin: {file_path}")
         except Exception as e:
-            logger.error(f"Failed to move file to Recycle Bin {file_path}: {e}")
+            logger.error(f"Failed to move file to Recycle Bin: {file_path}, Error: {e}")
             failed.append(file_path)
     
     return successful, failed
