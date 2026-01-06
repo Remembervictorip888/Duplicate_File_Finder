@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Image Finder</title>
+    <!-- Content Security Policy to enhance security -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com;
+                   style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;
+                   img-src 'self' blob: data:;
+                   font-src 'self';
+                   connect-src 'self';
+                   object-src 'none';
+                   frame-src 'none';
+                   child-src 'self';">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>

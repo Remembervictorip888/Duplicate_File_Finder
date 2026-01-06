@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Duplicate File Finder App (Chrome) with Dev Server",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5175",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "dev",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/src/*"
+            }
+        },
+        {
+            "name": "Launch Duplicate File Finder App (Edge) with Dev Server",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost:5175",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "dev",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/src/*"
+            }
+        },
+        {
+            "name": "Launch Electron App",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "electron-dev"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "npm: install"
+        }
+    ]
+}

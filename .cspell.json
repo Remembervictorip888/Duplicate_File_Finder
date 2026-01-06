@@ -1,0 +1,13 @@
+{
+  "version": "0.2",
+  "ignoreWords": [
+    "duplicateimagefinder",
+    "nsis"
+  ],
+  "flagWords": [],
+  "ignorePaths": [
+    "dist/**",
+    "node_modules/**",
+    "*.log"
+  ]
+}
