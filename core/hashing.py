@@ -1,7 +1,38 @@
 """
 Hashing module for duplicate file detection.
 
+PURPOSE:
 This module provides functions to calculate file hashes using xxhash for fast performance.
+It implements memory-efficient file reading and hash calculation, which is crucial for
+detecting exact duplicate files. The module also provides functions to get file
+information and group files by hash values.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection, main application flow
+- Uses: core.concurrency for concurrent hash calculation
+- Depends on: xxhash, pathlib, typing, logging
+- Provides: Core duplicate detection capability based on hash comparison
+
+DEPENDENCIES:
+- xxhash: For fast hash calculation (faster than MD5/SHA)
+- pathlib: For path manipulation
+- core.concurrency: For concurrent hash calculation
+- core.models: For FileInfo and FileHash models
+
+USAGE:
+Use the main functions to calculate hashes and find duplicates:
+    from core.hashing import get_hash, find_duplicates_by_hash, find_duplicates_by_hash_models
+    
+    # Calculate hash for a single file
+    file_hash = get_hash("/path/to/file.txt")
+    
+    # Find duplicates by hash from a list of files
+    duplicates = find_duplicates_by_hash(["/path/to/file1.txt", "/path/to/file2.txt"])
+    
+    # Get duplicates as Pydantic models
+    duplicates_models = find_duplicates_by_hash_models(file_paths)
+
+The module uses memory-efficient chunked reading for large files and handles errors gracefully.
 """
 import xxhash
 from pathlib import Path

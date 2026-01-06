@@ -1,7 +1,36 @@
 """
 Database module for the Duplicate File Finder application.
 
+PURPOSE:
 This module provides functions to store and retrieve scan results using SQLite.
+It implements a database layer that persists scan history, duplicate groups,
+and file information between application runs. The module provides methods to
+save ScanResult objects and retrieve them later, supporting features like
+scan history and comparison of results over time.
+
+RELATIONSHIPS:
+- Uses: core.models for data validation and serialization
+- Called by: main application flow when saving/loading scan results
+- Depends on: sqlite3, pathlib, json, datetime, logging
+- Provides: persistent storage for scan results and history
+
+DEPENDENCIES:
+- sqlite3: For SQLite database operations
+- pathlib: For path manipulation
+- json: For serializing complex data structures
+- datetime: For handling timestamps
+- core.models: For ScanResult, DuplicateGroup, and FileInfo models
+
+USAGE:
+Initialize the database and use it to save and retrieve scan results:
+    from core.database import DuplicateDatabase
+    from core.models import ScanResult
+    
+    db = DuplicateDatabase(Path("my_scans.db"))
+    scan_id = db.save_scan_result(my_scan_result)
+    retrieved_result = db.get_scan_result(scan_id)
+
+The database automatically creates required tables on initialization.
 """
 import sqlite3
 from pathlib import Path

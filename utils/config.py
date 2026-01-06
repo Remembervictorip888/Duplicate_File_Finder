@@ -1,7 +1,45 @@
 """
 Configuration module for the duplicate finder application.
 
-This module handles application settings and configuration.
+PURPOSE:
+This module handles application settings and configuration. It provides a centralized
+way to manage application preferences, defaults, and user settings that persist
+between application runs. The configuration is stored in a JSON file and validated
+using Pydantic models.
+
+RELATIONSHIPS:
+- Uses: core.models.DuplicateFinderConfig for validation
+- Provides: Application configuration management to main application
+- Called by: Main application to get/set configuration values
+- Depends on: json, os, pathlib, typing
+
+DEPENDENCIES:
+- json: For config serialization/deserialization
+- os: For file system operations
+- pathlib: For path manipulation
+- typing: For type hints (Dict, Any, Optional)
+- core.models: For DuplicateFinderConfig model
+
+USAGE:
+Use the Config class to manage application configuration:
+    from utils.config import Config
+    
+    # Initialize config
+    config = Config()
+    
+    # Get a configuration value
+    value = config.get('setting_name', 'default_value')
+    
+    # Set a configuration value
+    config.set('setting_name', 'new_value')
+    
+    # Update multiple configuration values
+    config.update({'setting1': 'value1', 'setting2': 'value2'})
+    
+    # Save configuration to file
+    config.save_config()
+
+This module ensures application settings are persisted and validated across sessions.
 """
 import json
 import os

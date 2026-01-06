@@ -1,7 +1,40 @@
 """
 Duplicate File Finder - Main Application
 
+PURPOSE:
 This script provides a command-line interface for finding and managing duplicate files.
+It orchestrates the entire duplicate detection process, from scanning directories to
+identifying duplicates using various methods and optionally deleting selected files.
+The application supports multiple duplicate detection methods, custom rules, size filtering,
+and maintains scan history.
+
+RELATIONSHIPS:
+- Uses: core modules (duplicate_detection, file_operations, ignore_list, scan_history, settings_manager)
+- Uses: utils modules (logger, config) for application utilities
+- Uses: core.models for data validation and serialization
+- Provides: Command-line interface for the duplicate detection system
+- Entry point: Application starts and ends here
+
+DEPENDENCIES:
+- sys, os: For system operations
+- pathlib: For path manipulation
+- typing: For type hints
+- logging: For application logging
+- argparse: For command-line argument parsing
+- datetime: For timestamp operations
+- utils.logger: For logging setup
+- utils.config: For configuration management
+- core modules: For all duplicate detection functionality
+- core.models: For data models
+
+USAGE:
+Run the application from the command line with various options:
+    python main.py /path/to/directory --strategy oldest --delete --extensions .jpg .png .pdf
+    python main.py /path/to/directory --method hash --min-size 0.1 --max-size 100
+    python main.py --export-settings /path/to/settings.json
+    python main.py --import-settings /path/to/settings.json
+
+The application supports multiple detection methods, custom rules, and file operations.
 """
 import sys
 import os

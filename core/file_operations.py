@@ -1,7 +1,37 @@
 """
 File operations module for safe file management.
 
-This module provides functions for safely deleting files to the Recycle Bin.
+PURPOSE:
+This module provides functions for safely managing files, particularly for deleting duplicate
+files in a safe manner using the Recycle Bin/Trash. It also includes functionality for
+automatically selecting which duplicate files to delete based on various strategies such as
+file age or resolution (for images).
+
+RELATIONSHIPS:
+- Used by: Main application flow when deleting duplicate files
+- Uses: send2trash library for safe deletion, PIL for image resolution comparison
+- Provides: Safe file deletion and auto-selection of files for deletion
+- Called when: User confirms deletion of duplicate files
+
+DEPENDENCIES:
+- send2trash: For safe deletion to Recycle Bin/Trash
+- pathlib: For path manipulation
+- typing: For type hints (List, Tuple)
+- PIL (Pillow): For image resolution comparison in 'lowest_res' strategy
+- logging: For logging operations
+
+USAGE:
+Use the main functions to perform safe file operations:
+    from core.file_operations import safe_delete_files, auto_select_duplicates_for_deletion
+    
+    # Safely delete files to Recycle Bin
+    successful, failed = safe_delete_files(['/path/to/file1.jpg', '/path/to/file2.jpg'])
+    
+    # Auto-select duplicates for deletion based on strategy
+    duplicate_groups = [['file1.jpg', 'file2.jpg'], ['doc1.pdf', 'doc2.pdf', 'doc3.pdf']]
+    files_to_delete = auto_select_duplicates_for_deletion(duplicate_groups, strategy='oldest')
+    
+The module provides safe operations that prevent accidental permanent data loss.
 """
 from send2trash import send2trash
 from pathlib import Path

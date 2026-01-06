@@ -1,8 +1,28 @@
 """
 Pydantic models for the Duplicate File Finder application.
 
+PURPOSE:
 This module defines structured data models for file information, 
-duplicate groups, and scan results with proper validation.
+duplicate groups, and scan results with proper validation. These
+models serve as the foundation for data validation and serialization
+throughout the application.
+
+RELATIONSHIPS:
+- Used by: core.scanning, core.hashing, core.image_similarity, core.file_operations
+- Depends on: pydantic, pathlib, typing, datetime, xxhash
+- Consumed by: database module to store scan results
+
+DEPENDENCIES:
+- pydantic: For data validation and serialization
+- pathlib: For path manipulation
+- xxhash: For hash value validation (indirect)
+
+USAGE:
+Import specific models as needed in other modules:
+    from core.models import FileInfo, DuplicateGroup, ScanResult, ScanSettings
+
+These models provide automatic validation and serialization capabilities
+that ensure data integrity across the application.
 """
 from pydantic import BaseModel, Field, validator
 from pathlib import Path

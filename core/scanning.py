@@ -1,7 +1,38 @@
 """
 File scanning module for duplicate file detection.
 
+PURPOSE:
 This module provides functions to scan directories for files efficiently.
+It recursively traverses directory trees and filters files based on extensions
+and other criteria. This is the foundational module for finding files that
+will be analyzed for duplicates.
+
+RELATIONSHIPS:
+- Used by: main application flow, UI controllers, duplicate detection modules
+- Uses: core.concurrency for concurrent scanning, utils.path_helper for file type validation
+- Depends on: os, pathlib, typing, logging
+- Provides file lists to: core.hashing, core.image_similarity, core.duplicate_detection
+
+DEPENDENCIES:
+- os: For directory traversal
+- pathlib: For path manipulation
+- core.concurrency: For concurrent file scanning (performance optimization)
+- core.models: For ScanSettings and ScanResult models
+- utils.path_helper: For file type validation
+
+USAGE:
+Use the main functions to scan directories for files:
+    from core.scanning import scan_directory_for_duplicates, scan_with_models
+    from core.models import ScanSettings
+    
+    # Basic file scanning
+    files, count = scan_directory_for_duplicates("/path/to/directory")
+    
+    # Scanning with settings
+    settings = ScanSettings(directory=Path("/path/to/directory"), extensions=['.jpg', '.png'])
+    result = scan_with_models(settings)
+
+The module handles errors gracefully and provides progress logging.
 """
 import os
 from pathlib import Path

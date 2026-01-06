@@ -1,7 +1,41 @@
 """
 Image similarity module for visual duplicate detection.
 
+PURPOSE:
 This module provides functions to find visually similar images using perceptual hashing.
+It implements algorithms that can detect images that look similar but may have different
+file content (e.g., different formats, compression levels, or minor edits) by using
+perceptual hashing techniques that are robust to minor changes.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection for image similarity detection
+- Uses: imagehash, PIL (Pillow), core.hashing for file size checks
+- Provides: Visual similarity detection for image files
+- Called when: Image similarity detection is enabled in scan settings
+
+DEPENDENCIES:
+- imagehash: For perceptual hashing algorithms
+- PIL (Pillow): For image processing
+- pathlib: For path manipulation
+- typing: For type hints (List, Dict, Tuple)
+- logging: For logging operations
+- core.hashing: For file size checks
+
+USAGE:
+Use the main functions to detect similar images:
+    from core.image_similarity import calculate_image_hash, find_similar_images, find_exact_duplicate_images
+    
+    # Calculate perceptual hash for an image
+    img_hash = calculate_image_hash("/path/to/image.jpg")
+    
+    # Find visually similar images
+    similar_groups = find_similar_images(image_paths, threshold=5)
+    
+    # Find exact duplicate images
+    exact_duplicates = find_exact_duplicate_images(image_paths)
+
+This module is particularly useful for finding image duplicates that may have different
+file content but visually appear the same or very similar.
 """
 import imagehash
 from PIL import Image

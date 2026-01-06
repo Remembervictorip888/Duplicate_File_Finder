@@ -1,8 +1,43 @@
 """
 Advanced duplicate grouping module.
 
+PURPOSE:
 This module provides functions to group potential duplicate files based on advanced
-naming patterns and relationships.
+naming patterns and relationships. It implements sophisticated algorithms to detect
+files that may be duplicates based on naming conventions, such as files with
+incremental numbers, copy indicators, or other common patterns that indicate
+duplicate content with slight name variations.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection for advanced duplicate detection
+- Uses: re, pathlib, typing, logging standard libraries
+- Provides: Advanced grouping functionality for potential duplicates
+- Called when: Advanced grouping is enabled in scan settings
+
+DEPENDENCIES:
+- re: For regular expression pattern matching
+- pathlib: For path manipulation
+- typing: For type hints (List, Dict, Tuple)
+- logging: For logging operations
+
+USAGE:
+Use the main functions to group files by advanced patterns:
+    from core.advanced_grouping import group_by_advanced_patterns, group_by_filename_similarity, group_files_by_relationships, group_by_custom_rules
+    
+    # Group files by advanced naming patterns
+    pattern_groups = group_by_advanced_patterns(file_paths)
+    
+    # Group files by filename similarity
+    similarity_groups = group_by_filename_similarity(file_paths, similarity_threshold=0.8)
+    
+    # Group files by naming relationships
+    relationship_groups = group_files_by_relationships(file_paths)
+    
+    # Group files by custom rules
+    custom_groups = group_by_custom_rules(file_paths)
+
+This module is particularly useful for identifying duplicates that don't have identical content
+but follow naming conventions that suggest they are duplicates (e.g., image_1.jpg, image_2.jpg).
 """
 import re
 from pathlib import Path

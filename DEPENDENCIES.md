@@ -11,7 +11,6 @@ The application implements several security measures to protect against XSS and 
 3. **Secure IPC Communication**: Uses contextBridge to expose only necessary APIs to the renderer process
 4. **Electron Security**: Updated to the latest version with security patches
 
-
 ## Frontend Dependencies (Node.js/NPM)
 
 ### Core Dependencies
@@ -41,7 +40,6 @@ The application implements several security measures to protect against XSS and 
 - **@types/react-dom**: ^18.2.18 - TypeScript definitions for React DOM
 - **@types/node**: ^20.11.5 - TypeScript definitions for Node.js
 
-
 ## Backend Dependencies (Python)
 
 ### Core Dependencies
@@ -53,7 +51,6 @@ The application implements several security measures to protect against XSS and 
 ### Optional Dependencies
 - **aiofiles**: ^23.0.0 - Provides async file operations if needed for future enhancements
 - **pyinstaller**: Used for creating standalone executables from Python scripts (not in requirements.txt but mentioned in docs)
-
 
 ## Why These Updates Were Necessary
 
@@ -75,7 +72,6 @@ The application implements several security measures to protect against XSS and 
 
 4. **send2trash 1.8.2**: Latest version with better cross-platform compatibility.
 
-
 ## Installation
 
 ### Frontend Dependencies
@@ -87,7 +83,6 @@ npm install
 ```bash
 pip install -r requirements.txt
 ```
-
 
 ## Development and Production Usage
 
@@ -102,15 +97,13 @@ pip install -r requirements.txt
 - Use `npm run electron-pack` as an alternative packaging method
 - Use `pyinstaller` to create standalone Python executable (alternative method)
 
-
-## Security Considerations (Reiterated)
+## Security Measures Implemented
 
 1. Electron security: Updated to newer version with security patches
 2. Content Security Policy: Implemented to prevent XSS attacks
 3. Context isolation: Ensures renderer process cannot directly access Node.js APIs
 4. Python packages: Updated to latest versions with security fixes
 5. Dependencies regularly reviewed for vulnerabilities
-
 
 ## Performance Improvements
 

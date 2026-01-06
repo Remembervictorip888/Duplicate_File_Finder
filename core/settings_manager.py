@@ -1,8 +1,52 @@
 """
 Settings manager module for duplicate detection app.
 
+PURPOSE:
 This module provides functions to export and import application settings,
-allowing users to save and restore their configuration preferences.
+allowing users to save and restore their configuration preferences. It manages
+user preferences such as scan options, file extensions, ignore lists, and
+custom rules, making it easy to transfer settings between installations
+or share configurations.
+
+RELATIONSHIPS:
+- Used by: Main application flow for configuration management
+- Uses: json, os, pathlib, typing, logging standard libraries
+- Provides: Settings export/import and persistence functionality
+- Called when: Loading/saving application configuration
+
+DEPENDENCIES:
+- json: For settings serialization/deserialization
+- os: For file system operations
+- pathlib: For path manipulation
+- typing: For type hints (Dict, Any, Optional)
+- logging: For logging operations
+
+USAGE:
+Use the SettingsManager class to manage application settings:
+    from core.settings_manager import SettingsManager
+    
+    # Initialize settings manager
+    settings_manager = SettingsManager(settings_file_path="my_settings.json")
+    
+    # Get a setting value
+    strategy = settings_manager.get_setting("auto_select_strategy", "oldest")
+    
+    # Set a setting value
+    settings_manager.set_setting("image_similarity_threshold", 15)
+    
+    # Export settings to a file
+    success = settings_manager.export_settings("/path/to/export.json")
+    
+    # Import settings from a file
+    success = settings_manager.import_settings("/path/to/import.json")
+    
+    # Save settings to default location
+    settings_manager.save_settings()
+    
+    # Reset to default settings
+    settings_manager.reset_to_defaults()
+
+This module enables persistent configuration management across application sessions.
 """
 import json
 import os

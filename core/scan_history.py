@@ -1,8 +1,53 @@
 """
 Scan history module for duplicate detection.
 
+PURPOSE:
 This module provides functions to record and manage previous scan sessions,
 including metadata about each scan and its results using SQLite database.
+It allows users to view scan history, compare results across scans, and
+retrieve previously detected duplicates without rescanning.
+
+RELATIONSHIPS:
+- Used by: Main application flow for scan history management
+- Uses: core.database for persistent storage, core.models for ScanResult
+- Provides: Scan history recording and retrieval functionality
+- Called when: Storing or retrieving scan history data
+
+DEPENDENCIES:
+- json: For data serialization
+- datetime: For timestamp handling
+- pathlib: For path manipulation
+- typing: For type hints (List, Dict, Optional)
+- logging: For logging operations
+- core.database: For persistent storage of scan results
+- core.models: For ScanResult model
+
+USAGE:
+Use the ScanHistory class to manage scan history:
+    from core.scan_history import ScanHistory
+    
+    # Initialize scan history manager
+    history = ScanHistory(db_path="my_scans.db")
+    
+    # Add a scan result to history
+    scan_id = history.add_scan_result(scan_result)
+    
+    # Get recent scans
+    recent_scans = history.get_recent_scans(limit=10)
+    
+    # Get a specific scan result
+    scan_result = history.get_scan_result(scan_id)
+    
+    # Get scans for a specific directory
+    dir_scans = history.get_scans_by_directory("/path/to/dir")
+    
+    # Delete a scan
+    history.delete_scan(scan_id)
+    
+    # Clear all history
+    history.clear_history()
+
+This module provides persistent storage and retrieval of scan history for later reference.
 """
 import json
 import os

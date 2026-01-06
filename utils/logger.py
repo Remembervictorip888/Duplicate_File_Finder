@@ -1,7 +1,38 @@
 """
 Logging module for the duplicate finder application.
 
-This module configures logging to both console and file.
+PURPOSE:
+This module configures logging to both console and file, providing a centralized
+logging mechanism for the application. It ensures all components of the application
+can log messages consistently to both console output and persistent log files,
+which is essential for debugging and monitoring application behavior.
+
+RELATIONSHIPS:
+- Used by: All core modules and main application for logging
+- Uses: logging, os, pathlib standard libraries
+- Provides: Standardized logging setup across the application
+- Called when: Logging is needed in any module
+
+DEPENDENCIES:
+- logging: For logging functionality
+- os: For file system operations
+- pathlib: For path manipulation
+- Creates log files in the 'logs' directory as per project specification
+
+USAGE:
+Use the setup_logger function to create loggers throughout the application:
+    from utils.logger import setup_logger
+    import logging
+    
+    # Create a logger for a module
+    logger = setup_logger('my_module', 'my_module.log', logging.INFO)
+    
+    # Use the logger
+    logger.info("This is an info message")
+    logger.error("This is an error message")
+    logger.debug("This is a debug message")
+
+This module implements the application-wide logging standard as specified in the project requirements.
 """
 import logging
 import os

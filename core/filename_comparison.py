@@ -1,8 +1,43 @@
 """
 File name comparison module for duplicate detection.
 
+PURPOSE:
 This module provides functions to detect duplicate files based on their names,
-ignoring case and extension, and handling common naming patterns.
+ignoring case and extension, and handling common naming patterns. It implements
+sophisticated algorithms to normalize filenames and compare them for potential
+duplicates, accounting for common variations like numbers, copy indicators,
+and other naming conventions that suggest files are duplicates.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection for filename-based duplicate detection
+- Uses: re, pathlib, typing, logging standard libraries
+- Provides: Filename normalization and comparison functionality
+- Called when: Filename-based duplicate detection is enabled in scan settings
+
+DEPENDENCIES:
+- re: For regular expression pattern matching
+- pathlib: For path manipulation
+- typing: For type hints (List, Dict, Tuple, Callable)
+- logging: For logging operations
+
+USAGE:
+Use the main functions to detect duplicates by filename:
+    from core.filename_comparison import compare_filenames, find_duplicates_by_filename, 
+                                     find_duplicates_by_patterns, find_duplicates_by_keywords
+    
+    # Compare two filenames for potential duplication
+    is_duplicate = compare_filenames("photo.jpg", "photo_copy.jpg")
+    
+    # Find duplicates by comparing filenames
+    filename_duplicates = find_duplicates_by_filename(file_paths)
+    
+    # Find duplicates using custom patterns
+    pattern_duplicates = find_duplicates_by_patterns(file_paths, [r'(.+?)_[0-9]+$'])
+    
+    # Find duplicates by keywords in filenames
+    keyword_duplicates = find_duplicates_by_keywords(file_paths, ['backup', 'copy'])
+
+This module is useful for identifying duplicates that have similar names but may not have identical content.
 """
 import re
 from pathlib import Path

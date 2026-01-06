@@ -1,8 +1,48 @@
 """
 Custom Rules module for duplicate detection.
 
+PURPOSE:
 This module provides functions to create and apply custom rules for detecting duplicate files
-based on user-defined patterns, keywords, and naming conventions.
+based on user-defined patterns, keywords, and naming conventions. It allows users to define
+their own criteria for identifying potential duplicates, such as specific filename patterns,
+keywords, or regex expressions that indicate related or duplicate files.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection for custom rule-based duplicate detection
+- Uses: re, pathlib, typing, logging standard libraries
+- Provides: Custom rule creation and application functionality
+- Called when: Custom rules are enabled in scan settings
+
+DEPENDENCIES:
+- re: For regular expression pattern matching
+- pathlib: For path manipulation
+- typing: For type hints (List, Dict, Tuple, Callable)
+- logging: For logging operations
+
+USAGE:
+Use the main functions to create and apply custom rules:
+    from core.custom_rules import create_custom_rule_set, find_duplicates_by_custom_rules, 
+                              find_duplicates_by_advanced_patterns, find_duplicates_by_keyword_groups
+    
+    # Create a custom rule set
+    custom_rules, rule_names = create_custom_rule_set(
+        suffix_rules=['_copy', '_duplicate'],
+        prefix_rules=['copy_of_'],
+        containing_rules=['backup'],
+        regex_rules=[r'v[0-9]+'],  # Version numbers
+        keywords=['temp', 'draft']
+    )
+    
+    # Find duplicates using custom rules
+    rule_duplicates = find_duplicates_by_custom_rules(file_paths, custom_rules, rule_names)
+    
+    # Find duplicates using advanced patterns
+    pattern_duplicates = find_duplicates_by_advanced_patterns(file_paths, [('suffix', '_copy')])
+    
+    # Find duplicates by keyword groups
+    keyword_duplicates = find_duplicates_by_keyword_groups(file_paths, ['temp', 'draft'])
+
+This module enables flexible and user-defined duplicate detection beyond standard methods.
 """
 import re
 from pathlib import Path

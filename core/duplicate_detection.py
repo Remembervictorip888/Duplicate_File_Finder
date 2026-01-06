@@ -1,15 +1,51 @@
 """
 Main duplicate detection module.
 
+PURPOSE:
 This module provides functions to find duplicate files using multiple methods:
-- Hash comparison
-- Filename comparison
-- Size comparison
-- Pattern matching
-- Custom rules
-- Advanced grouping
-- Size filtering
-- Ignore list filtering
+- Hash comparison for exact duplicates
+- Filename comparison for similar names
+- Size comparison for same-sized files
+- Pattern matching for specific naming patterns
+- Custom rules for user-defined criteria
+- Advanced grouping for complex relationships
+- Size filtering to exclude files outside size range
+- Ignore list filtering to exclude specified files/directories
+
+RELATIONSHIPS:
+- Uses: core.hashing, core.filename_comparison, core.custom_rules, core.advanced_grouping,
+        core.size_filtering, core.ignore_list, core.scanning, core.concurrency
+- Depends on: os, pathlib, typing, logging, datetime
+- Used by: main application flow, UI controllers
+- Provides: Comprehensive duplicate detection across multiple algorithms
+
+DEPENDENCIES:
+- core.hashing: For hash-based duplicate detection
+- core.filename_comparison: For name-based duplicate detection
+- core.custom_rules: For custom rule-based detection
+- core.advanced_grouping: For advanced grouping algorithms
+- core.size_filtering: For size-based filtering
+- core.ignore_list: For filtering out ignored files/directories
+- core.scanning: For file discovery
+- core.models: For data models
+- core.concurrency: For concurrent processing
+
+USAGE:
+Use the main functions to detect duplicates using multiple methods:
+    from core.duplicate_detection import find_all_duplicates, find_all_duplicates_with_models, merge_duplicate_groups
+    from core.models import ScanSettings
+    
+    # Basic duplicate detection
+    results = find_all_duplicates("/path/to/directory", extensions=['.jpg', '.png'])
+    
+    # Using Pydantic models
+    settings = ScanSettings(directory=Path("/path/to/directory"), use_hash=True, use_size=True)
+    model_results = find_all_duplicates_with_models(settings)
+    
+    # Merging results from different detection methods
+    merged = merge_duplicate_groups(results)
+
+This module orchestrates the entire duplicate detection process across multiple methods.
 """
 import os
 from pathlib import Path

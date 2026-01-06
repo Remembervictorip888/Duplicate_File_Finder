@@ -1,8 +1,43 @@
 """
 Size filtering module for duplicate detection.
 
+PURPOSE:
 This module provides functions to filter files based on their size,
 allowing users to exclude files smaller or larger than specified thresholds.
+This is useful for performance optimization (excluding very small or very large files)
+and for focusing on files within a specific size range that are more likely to be
+the type of duplicates the user wants to find.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection, core.scanning for size-based filtering
+- Uses: os, pathlib, typing, logging standard libraries
+- Provides: Size-based file filtering functionality
+- Called when: Size filtering is enabled in scan settings
+
+DEPENDENCIES:
+- os: For getting file sizes
+- pathlib: For path manipulation
+- typing: For type hints (List, Tuple)
+- logging: For logging operations
+
+USAGE:
+Use the main functions to filter files by size:
+    from core.size_filtering import filter_files_by_size, get_file_size_mb, get_size_stats
+    
+    # Filter files by size range
+    included_files, excluded_files = filter_files_by_size(
+        file_paths, 
+        min_size_mb=0.1,  # At least 0.1 MB
+        max_size_mb=100   # At most 100 MB
+    )
+    
+    # Get the size of a specific file
+    size_mb = get_file_size_mb("/path/to/file.jpg")
+    
+    # Get size statistics for a list of files
+    min_size, max_size, avg_size = get_size_stats(file_paths)
+
+This module helps optimize scanning performance and focus on files within desired size ranges.
 """
 import os
 from pathlib import Path

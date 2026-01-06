@@ -1,8 +1,44 @@
 """
 Concurrency module for the Duplicate File Finder application.
 
+PURPOSE:
 This module provides functions for concurrent file processing using ThreadPoolExecutor
-for I/O-bound operations and multiprocessing for CPU-bound operations.
+for I/O-bound operations and multiprocessing for CPU-bound operations. It significantly
+improves performance when processing large numbers of files by utilizing multiple
+threads for operations like hashing and file information retrieval.
+
+RELATIONSHIPS:
+- Used by: core.hashing, core.scanning, core.duplicate_detection for performance optimization
+- Uses: concurrent.futures, os, pathlib, xxhash and other standard libraries
+- Provides: Concurrent processing capabilities to speed up file operations
+- Called when: Processing large numbers of files to improve performance
+
+DEPENDENCIES:
+- concurrent.futures: For ThreadPoolExecutor and ProcessPoolExecutor
+- os: For file system operations
+- xxhash: For concurrent hash calculation
+- pathlib: For path manipulation
+- typing: For type hints
+- functools: For partial function application
+
+USAGE:
+Use the main functions to process files concurrently:
+    from core.concurrency import calculate_hashes_concurrent, get_file_info_concurrent_batch, 
+                            find_duplicates_by_hash_concurrent, scan_directory_concurrent
+    
+    # Calculate hashes for files concurrently
+    path_to_hash = calculate_hashes_concurrent(file_paths)
+    
+    # Get file info concurrently
+    path_to_info = get_file_info_concurrent_batch(file_paths)
+    
+    # Find duplicates by hash using concurrent processing
+    duplicates = find_duplicates_by_hash_concurrent(file_paths)
+    
+    # Scan directory concurrently
+    files = scan_directory_concurrent(directory_path, extensions)
+
+This module is essential for performance optimization when dealing with large datasets.
 """
 import os
 import xxhash

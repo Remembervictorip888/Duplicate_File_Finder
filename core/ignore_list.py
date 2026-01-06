@@ -1,8 +1,58 @@
 """
 Ignore list module for duplicate detection.
 
+PURPOSE:
 This module provides functions to maintain and use an ignore list
-to exclude specific files, folders, or patterns from scanning.
+to exclude specific files, folders, or patterns from scanning. It allows users
+to specify files, directories, file extensions, size ranges, and patterns
+that should be excluded from duplicate detection, improving scan performance
+and preventing unwanted files from being processed.
+
+RELATIONSHIPS:
+- Used by: core.duplicate_detection, main application flow for filtering
+- Uses: os, re, pathlib, typing, logging standard libraries
+- Provides: Path filtering and ignore functionality
+- Called when: Scanning directories to exclude unwanted files/directories
+
+DEPENDENCIES:
+- os: For path normalization and file system operations
+- re: For pattern matching with regular expressions
+- pathlib: For path manipulation
+- typing: For type hints (List, Set, Pattern, Union, Tuple)
+- logging: For logging operations
+
+USAGE:
+Use the IgnoreList class to manage ignore patterns:
+    from core.ignore_list import IgnoreList, create_default_ignore_list
+    
+    # Create a new ignore list
+    ignore_list = IgnoreList()
+    
+    # Add specific files to ignore
+    ignore_list.add_file("/path/to/file.txt")
+    
+    # Add directories to ignore
+    ignore_list.add_directory("/path/to/ignore")
+    
+    # Add patterns to ignore (regex)
+    ignore_list.add_pattern(r'\.tmp$')
+    
+    # Add extensions to ignore
+    ignore_list.add_extension('.tmp')
+    
+    # Add size ranges to ignore (in MB)
+    ignore_list.add_size_range(0.0, 0.1)  # Ignore files smaller than 0.1 MB
+    
+    # Check if a path should be ignored
+    should_ignore = ignore_list.is_ignored("/path/to/file.txt")
+    
+    # Filter a list of paths
+    filtered_paths = ignore_list.filter_paths(file_paths)
+    
+    # Or create a default ignore list
+    default_ignore_list = create_default_ignore_list()
+
+This module helps optimize scanning by excluding unnecessary files and directories.
 """
 import os
 import re
