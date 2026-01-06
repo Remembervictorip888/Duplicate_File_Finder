@@ -13,18 +13,33 @@ A high-performance local file processing application that finds duplicate files 
 
 ## Installation
 
-1. Make sure you have Python 3.12+ installed
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.8+
 
-2. Install the required packages:
+### Setup
 
+1. Clone or download the repository
+
+2. Install Node.js dependencies:
+```bash
+npm install
+```
+
+3. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Command Line Interface
+### Frontend Development Server
+```bash
+# Run the development server
+npm run dev
+```
 
+### Command Line Interface
 ```bash
 # Scan a directory for duplicates
 python main.py /path/to/directory
@@ -45,7 +60,21 @@ python main.py /path/to/directory --similarity 3
 - `newest`: Selects the newest file in each duplicate group for deletion
 - `lowest_res`: Selects the lowest resolution image in each duplicate group for deletion
 
-## Building a Windows Executable
+## Building the Application
+
+### For Development (Frontend + Electron)
+```bash
+# Run the Electron app in development mode
+npm run electron-dev
+```
+
+### For Production (Electron Desktop App)
+```bash
+# Build the Electron app for distribution
+npm run electron-build
+```
+
+### Building a Windows Executable (Alternative Python Method)
 
 To create a standalone Windows .exe file:
 
@@ -55,7 +84,7 @@ To create a standalone Windows .exe file:
 pip install pyinstaller
 ```
 
-1. Build the executable:
+2. Build the executable:
 
 ```bash
 pyinstaller --onefile --windowed main.py

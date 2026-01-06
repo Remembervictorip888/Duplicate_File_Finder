@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      external: ['electron', 'electron-dev']
+      external: ['electron']
     }
   },
   // Set the base path for production builds
@@ -15,5 +15,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false, // Allow Vite to try another port if 5173 is busy
-  }
+    open: true, // Automatically open the browser when starting dev server
+  },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
 })

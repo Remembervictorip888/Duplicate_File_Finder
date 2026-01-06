@@ -1,6 +1,16 @@
-PyQt6>=6.4.0
-xxhash>=3.0.0
-Pillow>=9.0.0
+# Python requirements for Duplicate File Finder
+
+# For fast content-based file hashing
+xxhash>=3.4.1
+
+# For image processing
+Pillow>=10.0.0
+
+# For perceptual image hashing (visual similarity detection)
 imagehash>=4.3.1
-send2trash>=1.8.0
-pathlib
+
+# For safe file deletion (to Recycle Bin)
+send2trash>=1.8.2
+
+# Optional: For better async support if needed
+aiofiles>=23.0.0
