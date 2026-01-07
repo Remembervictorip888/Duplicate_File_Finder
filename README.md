@@ -1,246 +1,112 @@
 # Duplicate File Finder
 
-A high-performance local file processing application that finds duplicate files and images with visual similarity, with safe deletion to the Windows Recycle Bin.
+A comprehensive tool to find and manage duplicate files with both command-line and GUI interfaces.
 
 ## Features
 
-- **Fast duplicate detection**: Uses xxhash for ultra-fast content-based file comparison
-- **Visual similarity**: Finds similar images using perceptual hashing
-- **Safe deletion**: Moves files to Recycle Bin (supports undo)
-- **High performance**: Optimized to scan 100k+ files without UI freezing
-- **Auto-selection**: Automatically selects duplicates based on rules (Oldest, Newest, Low Res)
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Secure**: Implements Content Security Policy to prevent XSS and other security vulnerabilities
+- **Multiple Detection Methods**: Hash comparison, filename similarity, size comparison, and image similarity
+- **Advanced Grouping**: Group potential duplicates using custom rules and patterns
+- **Safe File Operations**: Auto-select and delete duplicates with various strategies
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Modern UI**: React/TypeScript frontend with Electron integration
+- **Comprehensive Testing**: Full test coverage for both backend and frontend
 
 ## Installation
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.8+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd duplicate-file-finder
+   ```
 
-### Setup
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-1. Clone or download the repository
-
-2. Install Node.js dependencies:
-```bash
-npm install
-```
-
-3. Install Python dependencies:
-```bash
-pip install -r requirements.txt
-```
+3. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
 
 ## Usage
 
-### Frontend Development Server
-```bash
-# Run the development server
-npm run dev
-```
-
 ### Command Line Interface
+
 ```bash
-# Scan a directory for duplicates
+# Find duplicates in a directory
 python main.py /path/to/directory
 
-# Scan with a specific strategy for auto-selecting duplicates
-python main.py /path/to/directory --strategy oldest
+# Find duplicates with specific settings
+python main.py /path/to/directory --strategy oldest --delete --extensions .jpg .png .pdf
 
-# Actually delete the auto-selected duplicates (moves to Recycle Bin)
-python main.py /path/to/directory --strategy oldest --delete
-
-# Adjust the similarity threshold for images (0-20, lower = more similar)
-python main.py /path/to/directory --similarity 3
+# Use specific detection method
+python main.py /path/to/directory --method hash --min-size 0.1 --max-size 100
 ```
 
-### Available Strategies
-
-- `oldest`: Selects the oldest file in each duplicate group for deletion
-- `newest`: Selects the newest file in each duplicate group for deletion
-- `lowest_res`: Selects the lowest resolution image in each duplicate group for deletion
-
-## Building the Application
-
-### For Development (Frontend + Electron)
-```bash
-# Run the Electron app in development mode
-npm run electron-dev
-```
-
-### For Production (Electron Desktop App)
-```bash
-# Build the Electron app for distribution
-npm run electron-build
-```
-
-### Building a Windows Executable (Alternative Python Method)
-
-To create a standalone Windows .exe file:
-
-1. Install PyInstaller:
+### Graphical User Interface
 
 ```bash
-pip install pyinstaller
+# Start the Electron application (with development server)
+npm start
 ```
 
-2. Build the executable:
+## Testing
 
+The application includes comprehensive testing for both backend and frontend components:
+
+### Run Backend Tests
 ```bash
-pyinstaller --onefile --windowed main.py
+python -m pytest test_engine.py
+# Or run directly:
+python test_engine.py
 ```
 
-The executable will be created in the `dist/` folder.
+### Run UI Tests
+```bash
+python test_ui_engine.py
+```
 
-## Security Features
+### Run Complete Test Suite
+```bash
+python test_suite_enhanced.py
+```
 
-This application implements several security measures:
-
-1. **Content Security Policy (CSP)**: Prevents XSS attacks by restricting resource loading
-2. **Context Isolation**: Keeps the renderer process separate from the main process
-3. **Secure IPC**: Uses contextBridge to expose only necessary APIs to the renderer
-4. **File System Security**: Validates file paths before accessing the file system
-
-These security measures ensure that even if the renderer process is compromised, it cannot access sensitive system resources directly.
-
-## Enhanced User Requirements
-
-### 1. Folder Selection
-- Allow users to select a folder to search for duplicate files
-- Support searching within subfolders (recursive scanning)
-- Provide visual feedback during the scanning process
-
-### 2. File Type Filtering
-- Focus on searching for duplicate images and videos
-- Support common image formats: JPG, JPEG, PNG, GIF, BMP, TIFF, WEBP, etc.
-- Support common video formats: MP4, AVI, MOV, WMV, MKV, FLV, WEBM, etc.
-- Allow users to select specific file types to include in the scan
-
-### 3. Duplicate Detection Methods
-Implement the following methods to detect duplicate files:
-
-#### 3.1 File Name Comparison
-- Compare file names (ignore case and file extension)
-- Handle common naming patterns that indicate duplicates
-
-#### 3.2 File Size Comparison
-- Compare file sizes to identify potential duplicates
-- Group files with identical sizes
-
-#### 3.3 File Content (MD5 HASH)
-- Compare file content using MD5 hash to identify exact duplicates
-- Use efficient hashing algorithms for fast processing
-
-#### 3.4 Manual Rules (Custom Patterns)
-Allow users to set up custom rules to detect duplicates based on file name patterns:
-  - File names ending with "_1", "_2", "_copy", etc.
-  - File names containing "(1)", "(2)", "(Copy)", etc.
-  - Custom regular expressions for advanced pattern matching
-  - File names containing specific keywords or phrases
-  - Case-insensitive matching options
-
-### 4. Duplicate File Grouping
-- Group potential duplicate files together based on the selected method(s)
-- Example groupings:
-  - `abc.jpg` and `abc_1.jpg` should be grouped as potential duplicates
-  - `abc (1).jpg`, `abc (2).jpg`, and `abc.jpg` should be grouped as potential duplicates
-- Allow users to select which files in each group to keep or delete
-
-### 5. Result Display
-- Display the grouped duplicate files in a clear and easy-to-read format
-- Show file name and path, file size, file type
-- Provide preview thumbnails for images and videos (optional, user toggleable)
-- Allow users to sort and filter results
-- Enable quick selection of files to keep or delete
-
-### 6. Performance Requirements
-
-#### 6.1 Fast Scanning
-- Optimize the scanning process to be fast and efficient, even for large folders with many files
-- Implement multi-threading or parallel processing for faster scanning
-- Provide progress indicators during scanning
-
-#### 6.2 Size Filtering
-- Allow users to exclude files from the scan based on size:
-  - Files smaller than X MB
-  - Files larger than X MB
-- This helps in more effective scanning by focusing on relevant files
-
-### 7. Clear Instructions
-- Provide clear instructions and tooltips to help users understand the app features and options
-- Include contextual help for each feature
-- Offer a quick start guide for new users
-
-### 8. Customizable Settings
-Allow users to customize the app settings:
-  - Folder selection preferences
-  - File type filtering options
-  - File size filtering options
-  - Duplicate detection methods selection
-  - Interface language and theme preferences
-
-### 9. Additional Features
-
-#### 9.1 Ignore List
-- Allow users to add files, folders, file names, or file sizes to an ignore list
-- Exclude items on the ignore list from the scanning process
-- Support both exact matches and pattern-based ignores
-
-#### 9.2 Scan History
-- Keep a record of previous scans, including:
-  - Folder that was scanned
-  - Date and time of the scan
-  - Number of duplicate files found
-  - Actions taken (files deleted, kept, etc.)
-- Allow users to view and restore previous scan results
-
-#### 9.3 Settings Export and Import
-- Allow users to export and import the app settings
-- Enable backup and transfer of preferences between installations
-- Support sharing of common configurations
-
-#### 9.4 Advanced Features
-- Batch operations for managing multiple duplicate groups at once
-- Preview before deletion to prevent accidental file removal
-- Integration with cloud storage for scanning synced files
-- Scheduled scanning for regular cleanup
+The test suite includes:
+- **Backend Tests**: All core functionality including scanning, hashing, duplicate detection, file operations, data models, and database functionality
+- **UI Tests**: Frontend components, TypeScript compilation, build process, and Electron integration
+- **Integration Tests**: Verification that backend and frontend work together
+- **Performance Tests**: Basic performance checks to ensure application responsiveness
+- **Edge Case Tests**: Handling of empty directories, non-existent paths, and other edge cases
 
 ## Architecture
 
-The application follows the Model-View-Controller (MVC) pattern with clear separation of concerns:
+The application is organized into several key components:
 
-- `/core`: Core functionality modules
-  - `hashing.py`: File hashing using xxhash for fast duplicate detection
-  - `scanning.py`: Directory scanning using os.scandir for fast iteration
-  - `image_similarity.py`: Visual similarity detection using perceptual hashing
-  - `file_operations.py`: Safe file operations using send2trash
+- **core/**: Core functionality including scanning, hashing, duplicate detection, and file operations
+- **utils/**: Utility functions for logging and configuration
+- **src/**: React/TypeScript frontend components
+- **electron/**: Electron integration files for desktop application
+- **tests/**: Various test modules for different aspects of the application
 
-- `/utils`: Utility modules
-  - `logger.py`: Logging configuration
-  - `path_helper.py`: Path manipulation utilities
-  - `config.py`: Application configuration management
+## Technologies Used
 
-- `main.py`: Application entry point
+- **Backend**: Python 3.7+
+- **Frontend**: React, TypeScript, CSS
+- **Desktop**: Electron
+- **Build Tools**: Webpack, Vite
+- **Testing**: Pytest, Jest, React Testing Library
 
-## Performance Optimizations
+## Contributing
 
-- Uses 128KB chunks for memory-efficient file reading
-- Implements generator-based directory scanning to handle large numbers of files
-- Uses xxhash which is 10x faster than hashlib for content comparison
-- Implements background processing to prevent UI freezing
-
-## Safety Features
-
-- All file deletions use `send2trash` to move files to Recycle Bin (supports undo)
-- All file operations are wrapped in try/catch blocks
-- Permission errors are handled gracefully
-- Configurable maximum file size to prevent processing extremely large files
-
-## Logging
-
-The application logs to both console and `app.log` file with detailed information about the scanning and processing operations.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`python test_suite_enhanced.py`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
-This project is available as open source under the terms of the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

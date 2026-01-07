@@ -1,0 +1,29 @@
+{
+  "auto_select_strategy": "oldest",
+  "image_similarity_threshold": 10,
+  "default_extensions": [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".webp",
+    ".mp3",
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".mkv",
+    ".txt",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx"
+  ],
+  "last_scan_directory": ".",
+  "min_file_size_mb": null,
+  "max_file_size_mb": null,
+  "use_custom_rules": false,
+  "use_advanced_grouping": false
+}

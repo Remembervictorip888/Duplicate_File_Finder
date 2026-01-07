@@ -1,0 +1,6 @@
+2026-01-07 09:24:19 - duplicate_finder - INFO - Starting Duplicate File Finder Application
+2026-01-07 09:24:19 - duplicate_finder - INFO - Scanning directory: test_scan_dir
+2026-01-07 09:24:19 - duplicate_finder - INFO - Application completed successfully
+
+Scan Results:
+Found 0 groups of duplicate files

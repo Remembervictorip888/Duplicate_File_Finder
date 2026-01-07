@@ -64,7 +64,7 @@ def main():
     log_filename = f"scan_run_{timestamp}.log"
     
     # Setup logging
-    logger = setup_logger('duplicate_finder', log_filename, logging.INFO)
+    logger = setup_logger('duplicate_finder', log_filename, logging.DEBUG)  # Changed to DEBUG level
     logger.info("Starting Duplicate File Finder Application")
     
     # Load configuration
@@ -154,6 +154,10 @@ def main():
     
     logger.info(f"Scanning directory: {scan_directory}")
     
+    # Log scan parameters for debugging
+    logger.debug(f"Scan parameters: extensions={args.extensions}, method={args.method}, min_size={args.min_size}, max_size={args.max_size}")
+    logger.debug(f"Use custom rules: {args.use_custom_rules}, Use advanced grouping: {args.use_advanced_grouping}")
+    
     # Convert method argument to boolean flags
     use_hash = args.method in ['hash', 'all']
     use_filename = args.method in ['filename', 'all']
@@ -193,10 +197,21 @@ def main():
         image_similarity_threshold=args.similarity
     )
     
+    # Log scan settings for debugging
+    logger.debug(f"Scan settings: {scan_settings}")
+    
     # Run duplicate detection with models
     start_time = dt.now()
+    logger.info(f"Starting duplicate detection with method: {args.method}")
     duplicate_groups = find_all_duplicates_with_models(scan_settings)
     end_time = dt.now()
+    
+    # Log the results of the detection for debugging
+    logger.debug(f"Found {len(duplicate_groups)} potential duplicate groups")
+    for i, group in enumerate(duplicate_groups):
+        logger.debug(f"Group {i+1}: {len(group.files)} files detected by {group.detection_method}")
+        for file_info in group.files:
+            logger.debug(f"  - {file_info.path} ({file_info.size} bytes)")
     
     # Create scan result model
     scanned_files_count = len(list(Path(scan_directory).rglob('*')))
@@ -269,6 +284,22 @@ def main():
                 print(f"\nUse --delete flag to actually move these files to Recycle Bin")
         else:
             print(f"\nNo files were selected for deletion using '{args.strategy}' strategy.")
+    else:
+        # Log more detailed info when no duplicates found
+        logger.info(f"No duplicates found. Scanning may have found {scanned_files_count} total files in {scan_directory}")
+        # Check what files were actually found
+        all_files = list(Path(scan_directory).rglob('*'))
+        text_files = [f for f in all_files if f.is_file() and f.suffix.lower() == '.txt']
+        logger.info(f"Found {len(text_files)} .txt files in directory: {[str(f) for f in text_files]}")
+        
+        # Check content of text files to verify if they are actually duplicates
+        for f in text_files:
+            try:
+                with open(f, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    logger.info(f"File {f.name}: content length = {len(content)}, content hash = {hash(content)}")
+            except Exception as e:
+                logger.error(f"Could not read file {f}: {e}")
     
     logger.info("Application completed successfully")
     return 0

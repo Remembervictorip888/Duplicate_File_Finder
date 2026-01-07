@@ -4,14 +4,15 @@
   "description": "A tool to find and manage duplicate files",
   "main": "electron/main.cjs",
   "scripts": {
-    "start": "electron .",
+    "start": "concurrently \"npm run dev:server\" \"npm run electron-dev\"",
     "dev": "concurrently \"npm run electron\" \"npm run build:watch\"",
+    "dev:server": "vite --port 5173",
     "electron": "electron .",
+    "electron-dev": "electron .",
     "build": "tsc -p tsconfig.json && webpack --mode production",
     "build:watch": "webpack --watch --mode development",
     "dev:web": "webpack serve --mode development",
     "test": "jest",
-    "electron-dev": "electron .",
     "electron-build": "electron-builder --win --x64",
     "electron-pack": "electron-packager . --platform=win32 --arch=x64 --out=dist --overwrite"
   },

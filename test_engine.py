@@ -25,6 +25,7 @@ from core.duplicate_detection import find_duplicates_by_size, find_all_duplicate
 from core.filename_comparison import compare_filenames
 from core.ignore_list import IgnoreList
 from core.advanced_grouping import group_by_advanced_patterns, group_by_filename_similarity, group_files_by_relationships, group_by_custom_rules
+from core.size_filtering import filter_files_by_size
 
 
 class TestEngine:
@@ -599,6 +600,7 @@ class TestEngine:
             test_files = [
                 "test.txt",        # Should pass
                 "document.tmp",    # Should be filtered (matches .*\.tmp$)
+                "document.tmp",    # Should be filtered (matches .*\.tmp$)
                 "log_file.log",    # Should be filtered (matches .log extension)
                 "image.jpg"        # Should pass
             ]
@@ -639,6 +641,47 @@ class TestEngine:
                 
             except Exception as e:
                 self.log_test_result("Advanced Grouping Test", False, f"Error: {str(e)}")
+
+
+    def test_size_filtering(self):
+        """
+        Test the size filtering functionality.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            
+            # Create files of different sizes
+            small_file = temp_path / "small.txt"
+            small_file.write_text("Small content")  # Small file, ~15 bytes
+            
+            # Create a larger file (around 1KB)
+            large_content = "x" * 1024  # 1KB
+            large_file = temp_path / "large.txt"
+            large_file.write_text(large_content)
+            
+            file_paths = [str(small_file), str(large_file)]
+            
+            try:
+                # Test filtering files by size (min 0.5KB (~512 bytes), max 2KB)
+                # Convert to MB: 0.5KB = 0.0005MB, 2KB = 0.002MB
+                filtered_files, excluded_files = filter_files_by_size(file_paths, min_size_mb=0.0004, max_size_mb=0.003)
+                
+                # Both files should pass the filter (the small file is ~15 bytes, large is 1KB)
+                size_filter_details = f"Filtered {len(file_paths)} files to {len(filtered_files)} files, {len(excluded_files)} excluded"
+                self.log_test_result("Size Filtering Test", len(filtered_files) > 0, size_filter_details)
+                
+                # Test with stricter limits that exclude the small file
+                # 15 bytes is ~0.000014MB, so using min of 0.0001MB should exclude small file but keep large one
+                filtered_files_strict, excluded_files_strict = filter_files_by_size(file_paths, min_size_mb=0.0001, max_size_mb=0.003)
+                strict_filter_details = f"Strict filter: {len(filtered_files_strict)} files passed, {len(excluded_files_strict)} excluded"
+                
+                # The small file should be excluded (15 bytes < 0.0001MB = 100 bytes), large file should pass
+                self.log_test_result("Size Filtering Strict Test", 
+                                   len(filtered_files_strict) == 1 and len(excluded_files_strict) == 1, 
+                                   strict_filter_details)
+                
+            except Exception as e:
+                self.log_test_result("Size Filtering Test", False, f"Error: {str(e)}")
 
     def test_edge_cases(self):
         """
@@ -717,6 +760,7 @@ class TestEngine:
         self.test_filename_comparison()
         self.test_ignore_list()
         self.test_advanced_grouping()
+        self.test_size_filtering()
         self.test_edge_cases()
         
         # Print summary
